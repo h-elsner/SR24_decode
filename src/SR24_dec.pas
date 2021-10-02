@@ -13,11 +13,11 @@ byte idx val   desrcription
 	                 CHANNELDATA24      = 1
                          Telemetry to RC    = 2                len $26  38
 	                 TRANSMITTERGPSDATA = 3                len $2B  43
- 4       Counter
- 5       ??    Random?
+ 4       Counter         0 for old SR24 FW (Q500)
+ 5       ??    Random?   0 for old SR24 FW (Q500)
  6       RSSI  (in % ?)
- 7       Package counter
- 8       from here Payload (Channels / GPS data) ...
+ 7       Package counter  (lost packages?)
+ 8       from here on Payload bytes (Channels / GPS data) ...
 ...
  len+2   $xx   CRC8
 
@@ -55,19 +55,21 @@ const
 	        255, 97, 85,                            {33: motor status, IMU status, Preessure compass}
 	        16, 5, 0, 40);                          {36: flight mode, vehicle type, error flags, gps_AccH}
 
+  stkang =2184;                                         {switch tilt angle, 10%}
+  stkntrl=2048;                                         {neutral; 0%}
+  stkdown=683;                                          {-100%}
+  stkup  =3412;                                         {+100%}
+  stkmax =4095;                                         {+150%}
+  stkmin=0;                                             {-150%}
+  m45val=1433;                                          {Pan -40% TeamMode}
+  p50val=2730;                                          {+50%}
+  m50val=1365;                                          {-50%}
+
 var
   sr24ser: TBlockSerial;                                {UART access}
 
 type
   TPayLoad = array[0..maxlen] of byte;                  {Message array}
-
-  Tgpsdat = record
-    lat, lon, alt: single;
-  end;
-
-  TSticks = record
-    thr, roll, pitch, yaw: uint16;
-  end;
 
 
 procedure ConnectUART(port: string; var UARTconnected: boolean);
@@ -99,7 +101,8 @@ function SpeedToInt(alt: single): int16;                {Speed 2 byte}
 function GetNumSat(n: byte): byte;                      {Get number of sats from RC}
 function GetFixType(n: byte): byte;                     {Get GPS fix type}
 function GetGPSused(n: byte): boolean;                  {Get GPS used flag}
-function GetRSSI(data: TPayLoad): byte;                 {Get receiver RSSI in %}
+function GetRSSI(data: TPayLoad): int16;                 {Get receiver RSSI in %}
+function StkToProz(const w: uint16): int16;             {Stick Position to percent}
 
 implementation
 
@@ -357,9 +360,16 @@ begin
   result:=(n and $80)<>0;
 end;
 
-function GetRSSI(data: TPayLoad): byte;                 {Get receiver RSSI in %}
+function GetRSSI(data: TPayLoad): int16;                {Get receiver RSSI in dBm}
 begin
-  result:=round(data[6]*100/255);
+//  result:=round(data[6]*100/255);                     {in Proz}
+  result:=-(data[6] and $7F);
 end;
+
+function StkToProz(const w: uint16): int16;            {Stick Position to percent}
+begin
+  result:=round(w/stkmax*300)-150;
+end;
+
 
 end.

@@ -49,6 +49,12 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
+    lblRSSIval: TLabel;
+    lblPanVal: TLabel;
+    lblThrVal: TLabel;
+    lblYawVal: TLabel;
+    lblRollVal: TLabel;
+    lblPitchVal: TLabel;
     ledAux: TAdvLed;
     btnConnect: TButton;
     btnListen: TButton;
@@ -215,6 +221,7 @@ begin
   Voltmeter.Position:=speVolt.Value;
   lblFmode.Caption:=ModeLegacy(StrToIntDef(edFmode.Text, 16));
   cgErrorFlags.Caption:=capError;
+  mPan.Position:=m50Val;                           {1365 = 50%}
 end;
 
 procedure TForm1.speVoltChange(Sender: TObject);
@@ -488,14 +495,14 @@ begin
   WriteProtocol(s+HexStr(crc, 2));
 end;
 
-procedure TForm1.btnConnectClick(Sender: TObject);   {Send and receive that}
+procedure TForm1.btnConnectClick(Sender: TObject);   {Mirroring}
 var
   data, tele: TPayLoad;
   i, z: byte;
   tlz, gps: uint16;
   coord: array [0..7] of byte;
   alt: single;
-  thr, roll, pitch, yaw: uint16;
+  thr, roll, pitch, yaw, pan: uint16;
 
 begin
   btnStop.Tag:=0;
@@ -521,14 +528,19 @@ begin
           alt:=GetFloatFromBuf(data, 34);            {Store altitude}
         end;
         GetSticks(data, thr, roll, pitch, yaw);      {Sticks}
-        barLup.Position:=thr-2048;
-        barLdown.Position:=2048-thr;
-        barRLeft.Position:=roll-2048;
-        barRright.Position:=2048-roll;
-        barLleft.Position:=yaw-2048;
-        barLright.Position:=2048-yaw;
-        barRup.Position:=pitch-2048;
-        barRdown.Position:=2048-pitch;
+        barLup.Position:=thr-stkntrl;
+        barLdown.Position:=stkntrl-thr;
+        barRLeft.Position:=roll-stkntrl;
+        barRright.Position:=stkntrl-roll;
+        barLleft.Position:=yaw-stkntrl;
+        barLright.Position:=stkntrl-yaw;
+        barRup.Position:=pitch-stkntrl;
+        barRdown.Position:=stkntrl-pitch;
+        lblThrVal.Caption:=IntToStr(thr)+'='+IntToStr(StkToProz(thr))+'%';
+        lblPitchVal.Caption:=IntToStr(pitch)+'='+IntToStr(StkToProz(pitch))+'%';
+        lblRollVal.Caption:=IntToStr(roll)+'='+IntToStr(StkToProz(roll))+'%';
+        lblYawVal.Caption:=IntToStr(yaw)+'='+IntToStr(StkToProz(yaw))+'%';
+
         if thr=0 then begin                          {Mixed stop button}
           ledStop.State:=lsOn;
           barLdown.Position:=0;
@@ -537,7 +549,10 @@ begin
           ledStop.State:=lsDisabled;
 
         pbTilt.Position:=GetChValue(data, 6);        {Slider}
-        mPan.Position:=3412-GetChValue(data, 7);     {Knob}
+        pan:=GetChValue(data, 7);
+        mPan.Position:=stkup-pan;                    {Knob}
+        lblPanVal.Caption:=IntToStr(pan)+'='+IntToStr(StkToProz(pan))+'%';
+
         case GetChValue(data, 10) of                 {Switch}
           0..6: swGear.Checked:=false;
           4090..4095: swGear.Checked:=true;
@@ -557,6 +572,7 @@ begin
           end;
           IntToTelemetry(tele, AltitudeToInt(alt), 14, 4);  {Mirror Altitude m}
           pbRSSI.Position:=GetRSSI(data);            {Show RSSI level}
+          lblRSSIval.Caption:=IntToStr(data[6])+'='+IntToStr(GetRSSI(data))+'dBm';
           case GetChValue(data, 4) of
             680..686: tele[36]:=13;                  {RTH coming}
             2043..2051: tele[36]:=3;                 {Angle mode}
@@ -568,7 +584,6 @@ begin
           if gps>0 then
             i:=i or $80;                             {GPS aquired}
           tele[24]:=i;                               {nsat + GPS used}
-//          Sendtest(tele);
           UARTsendMsg(tele);
           z:=0;
           inc(tlz);                                  {Counter for sent packages}

@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 858
+  Left = 849
   Height = 436
-  Top = 155
+  Top = 51
   Width = 820
   Caption = 'Form1'
   ClientHeight = 436
@@ -107,9 +107,9 @@ object Form1: TForm1
     Height = 382
     Top = 48
     Width = 806
-    ActivePage = tbVolt
+    ActivePage = tbMirror
     Anchors = [akTop, akLeft, akRight, akBottom]
-    TabIndex = 1
+    TabIndex = 2
     TabOrder = 5
     object tbRaw: TTabSheet
       Caption = 'Raw data'
@@ -496,6 +496,8 @@ object Form1: TForm1
         Height = 18
         Top = 12
         Width = 152
+        Max = 0
+        Min = -150
         Smooth = True
         TabOrder = 1
       end
@@ -575,6 +577,22 @@ object Form1: TForm1
           Caption = 'Yaw'
           ParentColor = False
         end
+        object lblThrVal: TLabel
+          Left = 120
+          Height = 20
+          Top = 188
+          Width = 22
+          Caption = 'Thr'
+          ParentColor = False
+        end
+        object lblYawVal: TLabel
+          Left = 0
+          Height = 20
+          Top = 76
+          Width = 27
+          Caption = 'Yaw'
+          ParentColor = False
+        end
       end
       object pRight: TPanel
         Left = 552
@@ -644,6 +662,22 @@ object Form1: TForm1
           Caption = 'Roll'
           ParentColor = False
         end
+        object lblRollVal: TLabel
+          Left = 0
+          Height = 20
+          Top = 76
+          Width = 24
+          Caption = 'Roll'
+          ParentColor = False
+        end
+        object lblPitchVal: TLabel
+          Left = 120
+          Height = 20
+          Top = 188
+          Width = 33
+          Caption = 'Pitch'
+          ParentColor = False
+        end
       end
       object mPan: TmKnob
         Left = 288
@@ -651,7 +685,7 @@ object Form1: TForm1
         Top = 0
         Width = 44
         AllowUserDrag = False
-        Position = 100
+        Position = 1365
         RotationEffect = True
         Max = 2729
       end
@@ -703,6 +737,22 @@ object Form1: TForm1
         Width = 24
         State = lsDisabled
         Blink = False
+      end
+      object lblPanVal: TLabel
+        Left = 280
+        Height = 20
+        Top = 57
+        Width = 81
+        Caption = 'Camera Pan'
+        ParentColor = False
+      end
+      object lblRSSIval: TLabel
+        Left = 608
+        Height = 20
+        Top = 32
+        Width = 32
+        Caption = 'RSSI'
+        ParentColor = False
       end
     end
   end
