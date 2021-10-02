@@ -1,0 +1,770 @@
+object Form1: TForm1
+  Left = 849
+  Height = 436
+  Top = 51
+  Width = 820
+  Caption = 'Form1'
+  ClientHeight = 436
+  ClientWidth = 820
+  Constraints.MinHeight = 430
+  Constraints.MinWidth = 820
+  OnCreate = FormCreate
+  Position = poDefaultPosOnly
+  LCLVersion = '2.0.12.0'
+  object btnStop: TButton
+    Left = 352
+    Height = 25
+    Top = 8
+    Width = 160
+    Caption = 'Stop/Disconnect'
+    OnClick = btnStopClick
+    TabOrder = 0
+  end
+  object btnClose: TButton
+    Left = 700
+    Height = 25
+    Top = 8
+    Width = 104
+    Anchors = [akTop, akRight]
+    Caption = 'Close'
+    OnClick = btnCloseClick
+    TabOrder = 1
+  end
+  object cbxUARTname: TComboBox
+    Left = 12
+    Height = 30
+    Top = 8
+    Width = 208
+    Color = clGradientInactiveCaption
+    ItemHeight = 0
+    ItemIndex = 0
+    Items.Strings = (
+      '/dev/ttyAMA0'
+      '/dev/serial0'
+      'COM1'
+      'COM2'
+      'COM3'
+      'COM4'
+      'COM5'
+      'COM6'
+      'COM7'
+      'COM8'
+      'COM9'
+      'COM10'
+      'COM11'
+      'COM12'
+      'COM13'
+      'COM14'
+      'COM15'
+      'COM16'
+    )
+    TabOrder = 2
+    Text = '/dev/ttyAMA0'
+  end
+  object btnBind: TButton
+    Left = 232
+    Height = 25
+    Top = 8
+    Width = 104
+    Caption = 'Bind'
+    OnClick = btnBindClick
+    TabOrder = 3
+  end
+  object CheckGroup1: TCheckGroup
+    Left = 648
+    Height = 224
+    Top = 128
+    Width = 132
+    AutoFill = True
+    Caption = 'Error flags'
+    ChildSizing.LeftRightSpacing = 6
+    ChildSizing.TopBottomSpacing = 6
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 1
+    ClientHeight = 203
+    ClientWidth = 130
+    Items.Strings = (
+      'Voltage 1'
+      'Voltage 2'
+      '4'
+      '8'
+      '16'
+      'CCW'
+      '64'
+      '128'
+    )
+    TabOrder = 4
+    Data = {
+      080000000202020202020202
+    }
+  end
+  object pcMain: TPageControl
+    Left = 12
+    Height = 382
+    Top = 48
+    Width = 806
+    ActivePage = tbMirror
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    TabIndex = 2
+    TabOrder = 5
+    object tbRaw: TTabSheet
+      Caption = 'Raw data'
+      ClientHeight = 336
+      ClientWidth = 796
+      object mmoProtocol: TMemo
+        Left = 0
+        Height = 322
+        Top = 40
+        Width = 796
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        Lines.Strings = (
+          'Memo1'
+        )
+        ParentFont = False
+        ScrollBars = ssAutoVertical
+        TabOrder = 0
+      end
+      object btnListenRaw: TButton
+        Left = 0
+        Height = 25
+        Top = 8
+        Width = 104
+        Caption = 'ListenRaw'
+        OnClick = btnListenRawClick
+        TabOrder = 1
+      end
+      object btnListen: TButton
+        Left = 120
+        Height = 25
+        Top = 8
+        Width = 104
+        Caption = 'Listen'
+        OnClick = btnListenClick
+        TabOrder = 2
+      end
+      object btnSend1: TButton
+        Left = 360
+        Height = 25
+        Top = 8
+        Width = 104
+        Caption = 'Send data'
+        OnClick = btnSendClick
+        TabOrder = 3
+      end
+      object btnSave: TButton
+        Left = 684
+        Height = 25
+        Top = 7
+        Width = 104
+        Anchors = [akTop, akRight]
+        Caption = 'Save'
+        OnClick = btnSaveClick
+        TabOrder = 4
+      end
+      object cbGPSonly: TCheckBox
+        Left = 240
+        Height = 25
+        Top = 8
+        Width = 88
+        Caption = 'Only GPS'
+        TabOrder = 5
+      end
+    end
+    object tbVolt: TTabSheet
+      Caption = 'Test telemetry'
+      ClientHeight = 336
+      ClientWidth = 796
+      object Voltmeter: TA3nalogGauge
+        Left = 216
+        Height = 152
+        Top = 16
+        Width = 216
+        Caption = 'V'
+        IndMaximum = 26
+        IndMinimum = 1
+        Position = 5
+        Scale = 30
+        ScaleMax = 30
+        ScaleMin = 5
+      end
+      object speAlt: TFloatSpinEdit
+        Left = 48
+        Height = 30
+        Top = 96
+        Width = 160
+        Increment = 0.1
+        MaxValue = 1000
+        MinValue = -100
+        TabOrder = 1
+      end
+      object edLat: TEdit
+        Left = 48
+        Height = 30
+        Top = 16
+        Width = 160
+        TabOrder = 2
+        Text = '48.226147'
+        TextHint = 'Latitude'
+      end
+      object edLon: TEdit
+        Left = 48
+        Height = 30
+        Top = 56
+        Width = 160
+        TabOrder = 3
+        Text = '10.096332'
+        TextHint = 'Longitude'
+      end
+      object Label1: TLabel
+        Left = 8
+        Height = 20
+        Top = 24
+        Width = 21
+        Caption = 'Lat'
+        ParentColor = False
+      end
+      object Label2: TLabel
+        Left = 8
+        Height = 20
+        Top = 64
+        Width = 24
+        Caption = 'Lon'
+        ParentColor = False
+      end
+      object Label3: TLabel
+        Left = 8
+        Height = 20
+        Top = 104
+        Width = 17
+        Caption = 'Alt'
+        ParentColor = False
+      end
+      object speVolt: TFloatSpinEdit
+        Left = 48
+        Height = 30
+        Top = 136
+        Width = 90
+        Increment = 0.1
+        MaxValue = 30
+        MinValue = 5
+        OnChange = speVoltChange
+        TabOrder = 4
+        Value = 16
+      end
+      object speAmp: TFloatSpinEdit
+        Left = 144
+        Height = 30
+        Top = 136
+        Width = 66
+        Increment = 0.1
+        MaxValue = 200
+        TabOrder = 5
+      end
+      object Label4: TLabel
+        Left = 8
+        Height = 20
+        Top = 144
+        Width = 20
+        Caption = 'U/I'
+        ParentColor = False
+      end
+      object cgErrorFlags: TCheckGroup
+        Left = 440
+        Height = 204
+        Top = 4
+        Width = 160
+        AutoFill = True
+        Caption = 'Error flags'
+        ChildSizing.LeftRightSpacing = 6
+        ChildSizing.TopBottomSpacing = 6
+        ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+        ChildSizing.EnlargeVertical = crsHomogenousChildResize
+        ChildSizing.ShrinkHorizontal = crsScaleChilds
+        ChildSizing.ShrinkVertical = crsScaleChilds
+        ChildSizing.Layout = cclLeftToRightThenTopToBottom
+        ChildSizing.ControlsPerLine = 1
+        ClientHeight = 183
+        ClientWidth = 158
+        Items.Strings = (
+          'Voltage 1'
+          'Voltage 2'
+          '4'
+          '8'
+          '16'
+          'CCW'
+          '64'
+          'NFZ'
+        )
+        TabOrder = 6
+        Data = {
+          080000000202020202020202
+        }
+      end
+      object speVx: TFloatSpinEdit
+        Left = 48
+        Height = 30
+        Top = 176
+        Width = 90
+        Increment = 0.1
+        TabOrder = 7
+      end
+      object Label5: TLabel
+        Left = 8
+        Height = 20
+        Top = 184
+        Width = 16
+        Caption = 'Vx'
+        ParentColor = False
+      end
+      object speGPS: TFloatSpinEdit
+        Left = 536
+        Height = 30
+        Top = 248
+        Width = 66
+        Increment = 0.01
+        MaxValue = 10
+        TabOrder = 8
+        Value = 2
+      end
+      object Label6: TLabel
+        Left = 456
+        Height = 20
+        Top = 256
+        Width = 60
+        Caption = 'gpsAccH'
+        ParentColor = False
+      end
+      object edMotor: TEdit
+        Left = 160
+        Height = 30
+        Top = 176
+        Width = 80
+        TabOrder = 9
+        Text = '255'
+        TextHint = 'Motorstatus'
+      end
+      object edIMU: TEdit
+        Left = 256
+        Height = 30
+        Top = 176
+        Width = 80
+        TabOrder = 10
+        Text = '97'
+        TextHint = 'IMU status'
+      end
+      object edPCS: TEdit
+        Left = 352
+        Height = 30
+        Top = 176
+        Width = 80
+        TabOrder = 11
+        Text = '85'
+        TextHint = 'Pressure compass status'
+      end
+      object Label7: TLabel
+        Left = 160
+        Height = 20
+        Top = 216
+        Width = 89
+        Caption = 'Status: Motor'
+        ParentColor = False
+      end
+      object Label8: TLabel
+        Left = 352
+        Height = 20
+        Top = 216
+        Width = 83
+        Caption = 'Press/Comp'
+        ParentColor = False
+      end
+      object Label9: TLabel
+        Left = 280
+        Height = 20
+        Top = 216
+        Width = 27
+        Caption = 'IMU'
+        ParentColor = False
+      end
+      object edFmode: TEdit
+        Left = 161
+        Height = 30
+        Top = 248
+        Width = 80
+        OnChange = edFmodeChange
+        TabOrder = 12
+        Text = '16'
+        TextHint = 'Flight mode'
+      end
+      object lblFmode: TLabel
+        Left = 256
+        Height = 20
+        Top = 256
+        Width = 77
+        Caption = 'Flight mode'
+        ParentColor = False
+      end
+      object cbGPS: TCheckBox
+        Left = 48
+        Height = 25
+        Top = 251
+        Width = 96
+        Caption = 'GPS ready'
+        Checked = True
+        State = cbChecked
+        TabOrder = 13
+      end
+      object speSats: TSpinEdit
+        Left = 48
+        Height = 30
+        Top = 216
+        Width = 88
+        MaxValue = 40
+        TabOrder = 14
+        Value = 8
+      end
+      object Label10: TLabel
+        Left = 8
+        Height = 20
+        Top = 224
+        Width = 30
+        Caption = 'Sats'
+        ParentColor = False
+      end
+      object btnSend: TButton
+        Left = 608
+        Height = 25
+        Top = 16
+        Width = 120
+        Caption = 'Send data'
+        OnClick = btnSendClick
+        TabOrder = 15
+      end
+      object rgType: TRadioGroup
+        Left = 608
+        Height = 161
+        Top = 48
+        Width = 120
+        AutoFill = True
+        Caption = 'rgType'
+        ChildSizing.LeftRightSpacing = 6
+        ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+        ChildSizing.EnlargeVertical = crsHomogenousChildResize
+        ChildSizing.ShrinkHorizontal = crsScaleChilds
+        ChildSizing.ShrinkVertical = crsScaleChilds
+        ChildSizing.Layout = cclLeftToRightThenTopToBottom
+        ChildSizing.ControlsPerLine = 1
+        ClientHeight = 140
+        ClientWidth = 118
+        ItemIndex = 4
+        Items.Strings = (
+          '1: H920'
+          '2: Q500'
+          '3: 350QX'
+          '4: Chroma'
+          '5: YTH'
+        )
+        TabOrder = 16
+      end
+    end
+    object tbMirror: TTabSheet
+      Caption = 'Mirroring'
+      ClientHeight = 336
+      ClientWidth = 796
+      object btnConnect: TButton
+        Left = 8
+        Height = 25
+        Top = 8
+        Width = 88
+        Caption = 'Connect'
+        OnClick = btnConnectClick
+        TabOrder = 0
+      end
+      object lblStatus: TLabel
+        Left = 104
+        Height = 20
+        Top = 10
+        Width = 90
+        Caption = 'Disconnected'
+        ParentColor = False
+      end
+      object pbRSSI: TProgressBar
+        Left = 608
+        Height = 18
+        Top = 12
+        Width = 152
+        Max = 0
+        Min = -150
+        Smooth = True
+        TabOrder = 1
+      end
+      object Label11: TLabel
+        Left = 568
+        Height = 20
+        Top = 10
+        Width = 32
+        Caption = 'RSSI'
+        ParentColor = False
+      end
+      object pLeft: TPanel
+        Left = 40
+        Height = 208
+        Top = 72
+        Width = 208
+        Caption = 'L'
+        ClientHeight = 208
+        ClientWidth = 208
+        TabOrder = 2
+        object barLdown: TProgressBar
+          Left = 96
+          Height = 96
+          Top = 112
+          Width = 16
+          Color = clRed
+          Max = 1364
+          Orientation = pbTopDown
+          ParentColor = False
+          Smooth = True
+          TabOrder = 0
+        end
+        object barLright: TProgressBar
+          Left = 112
+          Height = 16
+          Top = 96
+          Width = 96
+          Max = 1364
+          Smooth = True
+          TabOrder = 1
+        end
+        object barLleft: TProgressBar
+          Left = 0
+          Height = 16
+          Top = 96
+          Width = 96
+          Max = 1364
+          Orientation = pbRightToLeft
+          Smooth = True
+          TabOrder = 2
+        end
+        object barLup: TProgressBar
+          Left = 96
+          Height = 96
+          Top = 0
+          Width = 16
+          Color = clRed
+          Max = 1364
+          Orientation = pbVertical
+          ParentColor = False
+          Smooth = True
+          TabOrder = 3
+        end
+        object Label12: TLabel
+          Left = 120
+          Height = 20
+          Top = 0
+          Width = 51
+          Caption = 'Throttle'
+          ParentColor = False
+        end
+        object Label13: TLabel
+          Left = 176
+          Height = 20
+          Top = 112
+          Width = 27
+          Caption = 'Yaw'
+          ParentColor = False
+        end
+        object lblThrVal: TLabel
+          Left = 120
+          Height = 20
+          Top = 188
+          Width = 22
+          Caption = 'Thr'
+          ParentColor = False
+        end
+        object lblYawVal: TLabel
+          Left = 0
+          Height = 20
+          Top = 76
+          Width = 27
+          Caption = 'Yaw'
+          ParentColor = False
+        end
+      end
+      object pRight: TPanel
+        Left = 552
+        Height = 208
+        Top = 72
+        Width = 208
+        Caption = 'R'
+        ClientHeight = 208
+        ClientWidth = 208
+        TabOrder = 3
+        object barRdown: TProgressBar
+          Left = 96
+          Height = 96
+          Top = 112
+          Width = 16
+          Color = clMoneyGreen
+          Max = 1364
+          Orientation = pbTopDown
+          ParentColor = False
+          Smooth = True
+          TabOrder = 0
+        end
+        object barRright: TProgressBar
+          Left = 112
+          Height = 16
+          Top = 96
+          Width = 96
+          Max = 1364
+          Smooth = True
+          TabOrder = 1
+        end
+        object barRleft: TProgressBar
+          Left = 0
+          Height = 16
+          Top = 96
+          Width = 96
+          Max = 1364
+          Orientation = pbRightToLeft
+          Smooth = True
+          TabOrder = 2
+        end
+        object barRup: TProgressBar
+          Left = 96
+          Height = 96
+          Top = 0
+          Width = 16
+          Color = clSkyBlue
+          Max = 1364
+          Orientation = pbVertical
+          ParentColor = False
+          Smooth = True
+          TabOrder = 3
+        end
+        object Label14: TLabel
+          Left = 120
+          Height = 20
+          Top = 0
+          Width = 33
+          Caption = 'Pitch'
+          ParentColor = False
+        end
+        object Label15: TLabel
+          Left = 179
+          Height = 20
+          Top = 112
+          Width = 24
+          Caption = 'Roll'
+          ParentColor = False
+        end
+        object lblRollVal: TLabel
+          Left = 0
+          Height = 20
+          Top = 76
+          Width = 24
+          Caption = 'Roll'
+          ParentColor = False
+        end
+        object lblPitchVal: TLabel
+          Left = 120
+          Height = 20
+          Top = 188
+          Width = 33
+          Caption = 'Pitch'
+          ParentColor = False
+        end
+      end
+      object mPan: TmKnob
+        Left = 288
+        Height = 52
+        Top = 0
+        Width = 44
+        AllowUserDrag = False
+        Position = 1365
+        RotationEffect = True
+        Max = 2729
+      end
+      object swGear: TOnOffSwitch
+        Left = 456
+        Height = 34
+        Top = 8
+        Width = 72
+        BorderStyle = bsThick
+        CaptionOFF = 'Up'
+        CaptionON = 'Dwn'
+        ColorOFF = clLime
+        TabOrder = 5
+      end
+      object pbTilt: TProgressBar
+        Left = 8
+        Height = 124
+        Top = 112
+        Width = 12
+        Color = clGray
+        Max = 2731
+        Min = 683
+        Orientation = pbTopDown
+        ParentColor = False
+        Position = 683
+        Smooth = True
+        TabOrder = 6
+      end
+      object Label16: TLabel
+        Left = 0
+        Height = 20
+        Top = 88
+        Width = 20
+        Caption = 'Tilt'
+        ParentColor = False
+      end
+      object ledAux: TAdvLed
+        Left = 392
+        Height = 24
+        Top = 10
+        Width = 24
+        State = lsDisabled
+        Blink = False
+      end
+      object ledStop: TAdvLed
+        Left = 132
+        Height = 24
+        Top = 280
+        Width = 24
+        State = lsDisabled
+        Blink = False
+      end
+      object lblPanVal: TLabel
+        Left = 280
+        Height = 20
+        Top = 57
+        Width = 81
+        Caption = 'Camera Pan'
+        ParentColor = False
+      end
+      object lblRSSIval: TLabel
+        Left = 608
+        Height = 20
+        Top = 32
+        Width = 32
+        Caption = 'RSSI'
+        ParentColor = False
+      end
+    end
+  end
+  object SaveDialog: TSaveDialog
+    Left = 496
+    Top = 8
+  end
+  object Timer1: TTimer
+    Enabled = False
+    Interval = 200
+    OnTimer = Timer1Timer
+    Left = 432
+    Top = 8
+  end
+end
