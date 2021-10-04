@@ -1,9 +1,12 @@
 {From ST24.h and ST24.c PX4 Autopilot
- Read data from SR24
 
- Uses synaser from Synapse (install per Online package manager).
+ Read data from SR24
+ -------------------
+
+ Uses non-standard package "Synapse" (install per Online package manager).
  Then open package file laz_synapse.lpk and Add to project.
- Datenstruktur
+
+ Data format UART messages (data packages)
 
 byte idx val   desrcription
  0       $55   header 1
@@ -21,6 +24,7 @@ byte idx val   desrcription
 ...
  len+2   $xx   CRC8
 
+Example:
  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 num bytes
  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 idx bytes
          |---------------------------------------------------------------------|   No bytes in Ln   Ln=24 for type 0 / Ln=43 for type 3 (GPS data)
@@ -46,7 +50,7 @@ const
   BindMessage: array [0..10] of byte =
                (header1, header2, 8, 4, 0, 0, $42, $49, $4E, $44, $B0);
                {                len type       B    I    N    D   CRC}
-  DefTelemetry: array [0..39] of byte =
+  DefTelemetry: array [0..39] of byte =                 {Default telemetry message for initialization}
                (header1, header2, $26, 2, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     { 6: lat, lon, alt}
                 0, 0, 0, 0, 0, 0,                       {18: vx, vy, vz }
@@ -61,9 +65,11 @@ const
   stkup  =3412;                                         {+100%}
   stkmax =4095;                                         {+150%}
   stkmin=0;                                             {-150%}
-  m45val=1433;                                          {Pan -40% TeamMode}
+  m40val=1502;                                          {-40% Pan controllable}
+  m45val=1433;                                          {-40% Pan Team mode}
   p50val=2730;                                          {+50%}
   m50val=1365;                                          {-50%}
+
 
 var
   sr24ser: TBlockSerial;                                {UART access}
@@ -128,7 +134,7 @@ begin
   end;
 end;
 
-function UARTcanRead: boolean;
+function UARTcanRead: boolean;                          {Simple UART routines}
 begin
   result:=sr24ser.CanRead(timeout);
 end;
@@ -252,7 +258,7 @@ var
   i: byte;
 
 begin
-  result:=0;                                    {Lowest byte}
+  result:=0;                                            {Lowest byte}
   for i:=len-1 downto 1 do
     result:=(result+data[idx+i]) shl 8;
   result:=result+data[idx];
@@ -261,7 +267,8 @@ begin
     result:=-result;
 end;
 
-procedure IntToTelemetry(var data: TPayload; w: integer; pos, len: byte);   {Convert integer to byte array}
+procedure IntToTelemetry(var data: TPayload; w: integer; pos, len: byte);
+                                                        {Convert integer to byte array}
 var
   i, x: integer;
 begin
@@ -325,22 +332,22 @@ begin
   result:=round((v-5)*10);
 end;
 
-function CurrentToByte(a: single): byte;
+function CurrentToByte(a: single): byte;                {Current in A}
 begin
   result:=round(a/2);
 end;
 
-function CoordToInt(coord: single): int32;
+function CoordToInt(coord: single): int32;              {Convert coordinates from single to integer}
 begin
   result:=round(coord*10000000);
 end;
 
-function AltitudeToInt(alt: single): int32;
+function AltitudeToInt(alt: single): int32;             {Convert Altitude in m to interger}
 begin
   result:=round(alt*100);
 end;
 
-function SpeedToInt(alt: single): int16;
+function SpeedToInt(alt: single): int16;                {Convert speed in m/s to integer}
 begin
   result:=round(alt*100);
 end;
@@ -360,13 +367,12 @@ begin
   result:=(n and $80)<>0;
 end;
 
-function GetRSSI(data: TPayLoad): int16;                {Get receiver RSSI in dBm}
+function GetRSSI(data: TPayLoad): int16;                {Get receiver RSSI in %}
 begin
-//  result:=round(data[6]*100/255);                     {in Proz}
-  result:=-(data[6] and $7F);
+  result:=round(data[6]*100/255);                       {in %}
 end;
 
-function StkToProz(const w: uint16): int16;            {Stick Position to percent}
+function StkToProz(const w: uint16): int16;             {Stick Position to percent}
 begin
   result:=round(w/stkmax*300)-150;
 end;

@@ -1,41 +1,18 @@
 unit SR24_decode_main;
 
-{ Datenstruktur
+{Test tool and example to read / write via UART for SR24 Yuneec receiver.
 
-byte idx val   desrcription
-0       $55   header 1
-1       $55   header 2
-2       len   24/43 length data after len byte inclusive type and CRC8, max 64
-3       0..3  Msg type: CHANNELDATA12      = 0                len $18  24
-                        CHANNELDATA24      = 1
-                        Telemetry to RC    = 2                len $26  38
-                        TRANSMITTERGPSDATA = 3                len $2B  43
-...
- len+2   $xx   CRC8
+ Uses non standard package "Industrial" - install with Online-Package-Manager.
 
-.1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 num bytes
-.0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 idx bytes
-         |---------------------------------------------------------------------|   No bytes in Ln   Ln=24 for type 0 / Ln=43 for type 3 (GPS data)
-      |---------------------------------------------------------------------|      bytes for CRC8
-h1 h2 Ln Tp Cntr  Ri Pc Ch0 Ch1  Ch2 Ch3  Ch4 Ch5  Ch6 Ch7  Ch8 Ch9  Ch10Ch11 CRC8                                                     CRC8
-2021-09-23 10:49:53.472 |  55 55 18 00 00 00 D8 FF 80 08 00 80 08 19 D5 48 00 2A D7 FC 88 82 AB 00 0F FF A6
+ Prepare and test UART on Raspi:
+ https://buyzero.de/blogs/news/praktische-kommunikation-per-uart-und-rs485-am-raspberry-pi
 
-2021-09-23 10:49:53.492 |  55 55 18 00 00 00 D8 FF 80 08 00 80 08 19 D5 48 00 2A D7 FC 88 82 AB 00 0F FF A6
-2021-09-23 10:49:53.532 |  55 55 2B 03 00 00 D8 FF 80 08 00 80 08 19 D5 48 00 2A D7 FC 88 82 AB 00 0F FF E7 AC BE 1C C0 AB 04 06 00 40 0E 44 00 00 00 00 00 00 04 69
+ Info about SR24:
+ https://www.rcgroups.com/forums/showthread.php?2973916-Yuneec-Receiver-protocol
+ https://yuneecpilots.com/threads/st16-v1.20747
+ https://yuneecpilots.com/threads/typhoon-h-st-16-controller-can-it-be-re-purposed.9970
+}
 
-
-
-Prepare and test UART on Raspi:
-Diese Vorbereitungsarbeiten beim RASPI3 gemacht:
-https://buyzero.de/blogs/news/praktische-kommunikation-per-uart-und-rs485-am-raspberry-pi
-
-Info about SR24:
-https://www.rcgroups.com/forums/showthread.php?2973916-Yuneec-Receiver-protocol
-https://yuneecpilots.com/threads/st16-v1.20747
-
-https://yuneecpilots.com/threads/typhoon-h-st-16-controller-can-it-be-re-purposed.9970
-14. I captured the binding sequence and successfully put the a receiver into binding mode by sending the data below repeated 5 times into the receiver over the serial line:
- }
 {$mode objfpc}{$H+}
 
 interface
@@ -49,6 +26,7 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
+    lblPanMode: TLabel;
     lblRSSIval: TLabel;
     lblPanVal: TLabel;
     lblThrVal: TLabel;
@@ -541,7 +519,7 @@ begin
         lblRollVal.Caption:=IntToStr(roll)+'='+IntToStr(StkToProz(roll))+'%';
         lblYawVal.Caption:=IntToStr(yaw)+'='+IntToStr(StkToProz(yaw))+'%';
 
-        if thr=0 then begin                          {Mixed stop button}
+        if thr=0 then begin                          {Mixed button -  start/stop}
           ledStop.State:=lsOn;
           barLdown.Position:=0;
 
@@ -553,13 +531,19 @@ begin
         mPan.Position:=stkup-pan;                    {Knob}
         lblPanVal.Caption:=IntToStr(pan)+'='+IntToStr(StkToProz(pan))+'%';
 
-        case GetChValue(data, 10) of                 {Switch}
-          0..6: swGear.Checked:=false;
-          4090..4095: swGear.Checked:=true;
+        case GetChValue(data, 9) of                  {Example switch - Panmode}
+          stkdown: lblPanMode.Caption:='Follow mode';
+          m45val:  lblPanMode.Caption:='Team mode';
+          m40val:  lblPanMode.Caption:='Follow pan controllable';
+          stkup:   lblPanMode.Caption:='Global mode';
         end;
-        case GetChValue(data, 11) of                 {Push button}
-          0..685: ledAux.State:=lsOn;
-          3410..4095: ledAux.State:=lsDisabled;
+        case GetChValue(data, 10) of                 {Gear Switch}
+          stkmin: swGear.Checked:=false;             {0 - up}
+          stkmax: swGear.Checked:=true;              {4095 - down}
+        end;
+        case GetChValue(data, 11) of                 {Example Push button}
+          stkmin: ledAux.State:=lsOn;                {Aux on}
+          stkmax: ledAux.State:=lsDisabled;          {Aux off}
         end;
         inc(z);
 
@@ -572,11 +556,11 @@ begin
           end;
           IntToTelemetry(tele, AltitudeToInt(alt), 14, 4);  {Mirror Altitude m}
           pbRSSI.Position:=GetRSSI(data);            {Show RSSI level}
-          lblRSSIval.Caption:=IntToStr(data[6])+'='+IntToStr(GetRSSI(data))+'dBm';
+          lblRSSIval.Caption:=IntToStr(data[6])+'='+IntToStr(GetRSSI(data))+'%';
           case GetChValue(data, 4) of
-            680..686: tele[36]:=13;                  {RTH coming}
-            2043..2051: tele[36]:=3;                 {Angle mode}
-            3399..3415: tele[36]:=6;                 {Smart}
+            stkdown: tele[36]:=13;                   {683 - RTH coming}
+            stkntrl: tele[36]:=3;                    {2048 - Angle mode}
+            stkup:   tele[36]:=6;                    {3412 - Smart}
           end;
           if thr=0 then
             tele[36]:=16;                            {Back to Ready if stop button is pressed}

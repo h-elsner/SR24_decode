@@ -496,8 +496,6 @@ object Form1: TForm1
         Height = 18
         Top = 12
         Width = 152
-        Max = 0
-        Min = -150
         Smooth = True
         TabOrder = 1
       end
@@ -685,7 +683,7 @@ object Form1: TForm1
         Top = 0
         Width = 44
         AllowUserDrag = False
-        Position = 1365
+        Position = 100
         RotationEffect = True
         Max = 2729
       end
@@ -752,6 +750,14 @@ object Form1: TForm1
         Top = 32
         Width = 32
         Caption = 'RSSI'
+        ParentColor = False
+      end
+      object lblPanMode: TLabel
+        Left = 280
+        Height = 20
+        Top = 88
+        Width = 66
+        Caption = 'Pan Mode'
         ParentColor = False
       end
     end
