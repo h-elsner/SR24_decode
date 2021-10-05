@@ -3,6 +3,7 @@ object Form1: TForm1
   Height = 436
   Top = 51
   Width = 820
+  ActiveControl = btnBind
   Caption = 'Form1'
   ClientHeight = 436
   ClientWidth = 820
@@ -107,9 +108,9 @@ object Form1: TForm1
     Height = 382
     Top = 48
     Width = 806
-    ActivePage = tbMirror
+    ActivePage = tbGPIO
     Anchors = [akTop, akLeft, akRight, akBottom]
-    TabIndex = 2
+    TabIndex = 3
     TabOrder = 5
     object tbRaw: TTabSheet
       Caption = 'Raw data'
@@ -759,6 +760,49 @@ object Form1: TForm1
         Width = 66
         Caption = 'Pan Mode'
         ParentColor = False
+      end
+    end
+    object tbGPIO: TTabSheet
+      Caption = 'Control GPIO'
+      ClientHeight = 336
+      ClientWidth = 796
+      object btnPWM: TButton
+        Left = 8
+        Height = 25
+        Top = 8
+        Width = 104
+        Caption = 'Start PWM'
+        OnClick = btnPWMClick
+        TabOrder = 0
+      end
+      object Memo1: TMemo
+        Left = 0
+        Height = 280
+        Top = 64
+        Width = 592
+        Lines.Strings = (
+          'Memo1'
+        )
+        TabOrder = 1
+      end
+      object btnClosePWM: TButton
+        Left = 128
+        Height = 25
+        Top = 8
+        Width = 104
+        Caption = 'Close PWM'
+        OnClick = btnClosePWMClick
+        TabOrder = 2
+      end
+      object TrackBar1: TTrackBar
+        Left = 256
+        Height = 50
+        Top = 8
+        Width = 336
+        Max = 100
+        OnChange = TrackBar1Change
+        Position = 1
+        TabOrder = 3
       end
     end
   end

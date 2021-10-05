@@ -19,13 +19,15 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
-  ComCtrls, Spin, A3nalogGauge, MKnob, switches, AdvLed, SR24_dec;
+  ComCtrls, Spin, A3nalogGauge, MKnob, switches, AdvLed, SR24_dec, SR24_ctrl;
 
 type
 
   { TForm1 }
 
   TForm1 = class(TForm)
+    btnPWM: TButton;
+    btnClosePWM: TButton;
     lblPanMode: TLabel;
     lblRSSIval: TLabel;
     lblPanVal: TLabel;
@@ -56,6 +58,7 @@ type
     Label16: TLabel;
     lblStatus: TLabel;
     ledStop: TAdvLed;
+    Memo1: TMemo;
     mPan: TmKnob;
     rgType: TRadioGroup;
     swGear: TOnOffSwitch;
@@ -81,7 +84,9 @@ type
     Label4: TLabel;
     Label5: TLabel;
     speSats: TSpinEdit;
+    tbGPIO: TTabSheet;
     tbMirror: TTabSheet;
+    TrackBar1: TTrackBar;
     Voltmeter: TA3nalogGauge;
     btnBind: TButton;
     btnStop: TButton;
@@ -103,9 +108,11 @@ type
     tbVolt: TTabSheet;
     Timer1: TTimer;
     procedure btnBindClick(Sender: TObject);
+    procedure btnClosePWMClick(Sender: TObject);
     procedure btnConnectClick(Sender: TObject);
     procedure btnListenClick(Sender: TObject);
     procedure btnListenRawClick(Sender: TObject);
+    procedure btnPWMClick(Sender: TObject);
     procedure btnSendClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
@@ -114,6 +121,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure speVoltChange(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
+    procedure TrackBar1Change(Sender: TObject);
   private
     function ErrorStatus: byte;
     procedure Sendtest(data: TPayload);
@@ -141,6 +149,9 @@ const
   aff='0.0';
   tab1=' ';
   capError='Error flags';
+
+  period=100000;
+
 
 implementation
 
@@ -191,6 +202,7 @@ begin
   Caption:='Record SR24 data stream';
   mmoProtocol.Text:='';
   mmoProtocol.Font.Name:='Liberation Mono';
+  Memo1.Lines.Clear;
   btnStop.Tag:=0;
   btnListen.Tag:=1;
   Timer1.Tag:=1;
@@ -200,6 +212,7 @@ begin
   lblFmode.Caption:=ModeLegacy(StrToIntDef(edFmode.Text, 16));
   cgErrorFlags.Caption:=capError;
   mPan.Position:=m50Val;                           {1365 = 50%}
+  TrackBar1.Enabled:=false;
 end;
 
 procedure TForm1.speVoltChange(Sender: TObject);
@@ -291,6 +304,11 @@ begin
     Timer1.Enabled:=true;
 end;
 
+procedure TForm1.TrackBar1Change(Sender: TObject);
+begin
+  setPWMCycle(0, TrackBar1.Position*period/TrackBar1.Max);
+end;
+
 function TForm1.OutData(data: TPayLoad): boolean;    {Decode and show received package}
 var
   len, mtp: byte;
@@ -351,6 +369,39 @@ begin
   ListenRaw;
   if btnListen.Tag>100 then
     btnListen.Tag:=1;
+end;
+
+procedure TForm1.btnPWMClick(Sender: TObject);
+var
+  status: byte;
+
+begin
+  TrackBar1.Position:=TrackBar1.Max div 2;
+  status:=PWMstatus;
+  Memo1.Lines.Add('PWM status: '+IntToStr(status));
+  if status=0 then begin
+    Memo1.Lines.Add('Hardware PWM not activated.');
+    Memo1.Lines.Add('Add "dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4" to /boot/config.txt.');
+  end else begin
+    Memo1.Lines.Add('Activate PWM...');
+    ActivatePWMChannels;
+    status:=PWMstatus;
+    Memo1.Lines.Add('PWM status now:  '+IntToStr(status));
+    if status>1 then begin
+      Memo1.Lines.Add('Set PWM freqency...');
+      sleep(100);
+      SetPWMChannel(0, period, period/2);
+      SetPWMChannel(1, period, period/2);
+      TrackBar1.Enabled:=true;
+    end;
+  end;
+end;
+
+procedure TForm1.btnClosePWMClick(Sender: TObject);
+begin
+  TrackBar1.Enabled:=false;
+  DeactivatePWM;
+  Memo1.Lines.Add('PWM status deactivated: '+inttostr(PWMstatus));
 end;
 
 function StrToCoord(coord: string): single;
