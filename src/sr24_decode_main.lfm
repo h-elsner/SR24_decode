@@ -795,13 +795,14 @@ object Form1: TForm1
         TabOrder = 2
       end
       object TrackBar1: TTrackBar
-        Left = 256
+        Left = 240
         Height = 50
         Top = 8
         Width = 336
-        Max = 100
+        Max = 2100
+        Min = 900
         OnChange = TrackBar1Change
-        Position = 1
+        Position = 900
         TabOrder = 3
       end
     end

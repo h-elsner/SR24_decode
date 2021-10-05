@@ -150,7 +150,10 @@ const
   tab1=' ';
   capError='Error flags';
 
-  period=100000;
+  period=20000000;                                 {Analog servo 20ms}
+  asmin=900;
+  asmax=2100;
+  asmiddle=1500;
 
 
 implementation
@@ -304,11 +307,6 @@ begin
     Timer1.Enabled:=true;
 end;
 
-procedure TForm1.TrackBar1Change(Sender: TObject);
-begin
-  setPWMCycle(0, TrackBar1.Position*period/TrackBar1.Max);
-end;
-
 function TForm1.OutData(data: TPayLoad): boolean;    {Decode and show received package}
 var
   len, mtp: byte;
@@ -376,7 +374,8 @@ var
   status: byte;
 
 begin
-  TrackBar1.Position:=TrackBar1.Max div 2;
+  TrackBar1.Position:=asmiddle;    {1500 micro sec}
+  btnClose.Enabled:=false;
   status:=PWMstatus;
   Memo1.Lines.Add('PWM status: '+IntToStr(status));
   if status=0 then begin
@@ -390,11 +389,16 @@ begin
     if status>1 then begin
       Memo1.Lines.Add('Set PWM freqency...');
       sleep(100);
-      SetPWMChannel(0, period, period/2);
-      SetPWMChannel(1, period, period/2);
+      SetPWMChannel(0, period, TrackBar1.Position*1000);
+      SetPWMChannel(1, period, asmiddle*1000);
       TrackBar1.Enabled:=true;
     end;
   end;
+end;
+
+procedure TForm1.TrackBar1Change(Sender: TObject);
+begin
+  setPWMCycle(0, TrackBar1.Position*1000);         {micro seconds}
 end;
 
 procedure TForm1.btnClosePWMClick(Sender: TObject);
@@ -402,6 +406,7 @@ begin
   TrackBar1.Enabled:=false;
   DeactivatePWM;
   Memo1.Lines.Add('PWM status deactivated: '+inttostr(PWMstatus));
+  btnClose.Enabled:=true;
 end;
 
 function StrToCoord(coord: string): single;
