@@ -27,7 +27,8 @@ type
 
   TForm1 = class(TForm)
     btnPWM: TButton;
-    btnClosePWM: TButton;
+    btnToggle: TButton;
+    btnGstop: TButton;
     lblPanMode: TLabel;
     lblRSSIval: TLabel;
     lblPanVal: TLabel;
@@ -108,8 +109,8 @@ type
     tbVolt: TTabSheet;
     Timer1: TTimer;
     procedure btnBindClick(Sender: TObject);
-    procedure btnClosePWMClick(Sender: TObject);
     procedure btnConnectClick(Sender: TObject);
+    procedure btnGstopClick(Sender: TObject);
     procedure btnListenClick(Sender: TObject);
     procedure btnListenRawClick(Sender: TObject);
     procedure btnPWMClick(Sender: TObject);
@@ -117,6 +118,7 @@ type
     procedure btnStopClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
+    procedure btnToggleClick(Sender: TObject);
     procedure edFmodeChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure speVoltChange(Sender: TObject);
@@ -150,7 +152,7 @@ const
   tab1=' ';
   capError='Error flags';
 
-  period=20000000;                                 {Analog servo 20ms}
+  period=20000;                                      {Analog servo 20ms}
   asmin=900;
   asmax=2100;
   asmiddle=1500;
@@ -332,7 +334,7 @@ begin
       else
         s:=RawData(data, len+3);                     {Other unknown messages as hex stream}
       end;
-      WriteProtocol(s);                      {CSV output}
+      WriteProtocol(s);                              {CSV output}
       mmoProtocol.SelStart:=length(mmoProtocol.Text);
     end;
   end else begin
@@ -374,7 +376,7 @@ var
   status: byte;
 
 begin
-  TrackBar1.Position:=asmiddle;    {1500 micro sec}
+  TrackBar1.Position:=asmiddle;                      {1500 micro sec}
   btnClose.Enabled:=false;
   status:=PWMstatus;
   Memo1.Lines.Add('PWM status: '+IntToStr(status));
@@ -383,14 +385,13 @@ begin
     Memo1.Lines.Add('Add "dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4" to /boot/config.txt.');
   end else begin
     Memo1.Lines.Add('Activate PWM...');
-    ActivatePWMChannels;
+    ActivatePWMChannel('2');                         {Activate both}
     status:=PWMstatus;
     Memo1.Lines.Add('PWM status now:  '+IntToStr(status));
     if status>1 then begin
-      Memo1.Lines.Add('Set PWM freqency...');
-      sleep(100);
-      SetPWMChannel(0, period, TrackBar1.Position*1000);
-      SetPWMChannel(1, period, asmiddle*1000);
+      Memo1.Lines.Add('Set PWM freqency to '+FormatFloat('0.000', 1000/period)+'kHz');
+      SetPWMChannel(0, period, TrackBar1.Position);
+      SetPWMChannel(1, period, asmiddle);
       TrackBar1.Enabled:=true;
     end;
   end;
@@ -398,15 +399,7 @@ end;
 
 procedure TForm1.TrackBar1Change(Sender: TObject);
 begin
-  setPWMCycle(0, TrackBar1.Position*1000);         {micro seconds}
-end;
-
-procedure TForm1.btnClosePWMClick(Sender: TObject);
-begin
-  TrackBar1.Enabled:=false;
-  DeactivatePWM;
-  Memo1.Lines.Add('PWM status deactivated: '+inttostr(PWMstatus));
-  btnClose.Enabled:=true;
+  setPWMCycle(0, TrackBar1.Position);                {micro seconds}
 end;
 
 function StrToCoord(coord: string): single;
@@ -484,7 +477,6 @@ begin
       UpdateTelemetry(data);
       IntToTelemetry(data, z, 4, 2);
       SendTelemetry(data);
-      sleep(200);
       Application.ProcessMessages;
       inc(z);
       if z>=65535 then
@@ -638,6 +630,18 @@ begin
   sr24Discon;
 end;
 
+procedure TForm1.btnGstopClick(Sender: TObject);
+begin
+  TrackBar1.Enabled:=false;
+  DeactivatePWM;
+  Memo1.Lines.Add('PWM status deactivated: '+inttostr(PWMstatus));
+  btnClose.Enabled:=true;
+  btnToggle.Tag:=1;
+  btnClose.Enabled:=true;
+  DeactivateGPIO('23');
+  Memo1.Lines.Add('GPIO pin 23 deactivated');
+end;
+
 procedure TForm1.ListenRaw;
 var
   b: byte;
@@ -710,8 +714,26 @@ procedure TForm1.btnCloseClick(Sender: TObject);     {Close}
 begin
   Timer1.Enabled:=false;
   btnStop.Tag:=1;
-  sleep(200);
   Close;
+end;
+
+procedure TForm1.btnToggleClick(Sender: TObject);    {Toggle GPIO23 as fast as possible}
+var
+  g: string;
+
+begin
+  btnToggle.Tag:=0;
+  btnClose.Enabled:=false;
+  g:='23';
+  Memo1.Lines.Add(pathGPIO+fSysStart);
+  if ActivateGPIO(g) then begin
+    Memo1.Lines.Add(pathGPIO+fgpio+g+fValue);
+    repeat
+      SetGPIO(g, '1');
+      SetGPIO(g);
+      Application.ProcessMessages;
+    until btnToggle.Tag=1;                           {Results in ~ 10kHz with some gaps}
+  end;
 end;
 
 procedure TForm1.edFmodeChange(Sender: TObject);

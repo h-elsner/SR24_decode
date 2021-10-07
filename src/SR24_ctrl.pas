@@ -1,13 +1,16 @@
 {GPIO control 
 
- Read data from SR24
- -------------------
+ Control GPIO by sysfs
+ ---------------------
 
- Uses non-standard package "pascalio", download from https://github.com/SAmeis/pascalio
- Then open, compile package file pascalio.lpk and Add to project.
+ Basic GPIO control using the sysfs interface is slower than writing into memory
+ but easier to program.
 
  PWM:
  https://github.com/raspberrypi/firmware/blob/master/boot/overlays/README
+
+ GPIO:
+ https://www.ics.com/blog/gpio-programming-using-sysfs-interface
 
  Defaults (pwm-2chan):
  GPIO18 (pin12) PWM0
@@ -15,7 +18,7 @@
 
  To activate the 2 PWM channels with default pins, add
      dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4
- to /boot/config.txt and reboot.
+ into /boot/config.txt and reboot.
 
  check if pwm chip is active:
  cd /sys/class/pwm/pwmchip0/
@@ -26,7 +29,7 @@
 
  Set up to test PWM:
  cd pwm0
- echo 10000 > period    (10kHz)
+ echo 10000 > period    (100kHz)
  echo 5000 > duty_cycle (length pulse --> 1:1)
  echo 1 > enable
 
@@ -43,125 +46,162 @@ uses
   sysutils, baseunix;
 
 const
-  pathPWM='/sys/class/pwm/pwmchip0/';
-  fPWMstart='export';      {enter channel number 0 or 1}
-  fPWMstop='unexport';     {enter channel number 0 or 1}
+  pathPWM='/sys/class/pwm/pwmchip0/';                    {Path to HW PWM in file system}
+  pathGPIO='/sys/class/gpio/';                           {Path to GPIO pins}
+  fgpio='gpio';                                          {Representation pin in file system, add GPIO number}
   PWMchan0='pwm0/';
   PWMchan1='pwm1/';
-  fperiod='period';        {in ns --> 1/f in Ghz}
-  fCycle='duty_cycle';     {in ns must be lower than period}
+  fSysStart='export';                                    {Activate GPIO pin in file system}
+  fSysStop='unexport';                                   {Deactivate GPIO pin in file system}
+  fDirection='/direction';
+  fValue='/value';
+  fperiod='period';                                      {in ns --> 1/f in Ghz}
+  fCycle='duty_cycle';                                   {in ns must be lower than period}
   fRevers='polarity';
-  fEnable='enable';         {1 enable, 0 disable}
+  fEnable='enable';                                      {1 enable, 0 disable}
   keyRevers='inversed';
   keyNoRevers='normal';
 
+  waitfs=50;                                             {Wait for file system to create GPIO system file}
+
 
 type
-  PWMdata=string[16];     {Maximum length to send a string}
+  SysData=string[16];                                    {16 is maximum length to send a string}
 
-function WritePWMFile(filename: string; const value: PWMdata): boolean;
+function WriteSysFile(filename: string; const value: SysData): boolean;
 function PWMStatus: byte;                                {0: PWM not activated,
                                                           3: Channel 0,
                                                           7: both 0 and 1 }
-function ActivatePWMChannels(both: boolean=true): byte;  {results PWM status after activation}
+function ActivatePWMChannel(GPIOnr: string): byte;       {results PWM status after activation}
 procedure DeactivatePWM;                                 {Deactivate all PWM channels}
-procedure SetPWMChannel(chan: byte; freq, cycle: single);
-procedure SetPWMCycle(chan: byte; cycle: single);
+procedure DeactivateGPIO(GPIOnr: string);                {Deactivate and close GPIO pin}
+procedure SetPWMChannel(const chan: byte; freq, cycle: uint32);
+procedure SetPWMCycle(const chan: byte; cycle: uint32);  {Set duty cycle in micro seconds}
+function ActivateGPIO(GPIOnr: string): boolean;          {Open GPIO port as Out/Low as default}
+procedure SetGPIO(GPIOnr: string; Gbit: char = '0');     {Output on one GPIO out-pin}
 
 implementation
 
-function WritePWMFile(filename: string; const value: PWMdata): boolean;
+function WriteSysFile(filename: string; const value: SysData): boolean;
 var
   f: cint;
 
 begin
   result:=false;
-  f:=fpOpen(filename, o_wronly);
+  f:=fpOpen(filename, o_wronly);                         {Open file to write a string}
   if f>0 then begin
-    if length(value)=fpWrite(f, value[1], length(value)) then
-      result:=true;
-    fpClose(f);
+    try
+      if length(value)=fpWrite(f, value[1], length(value)) then
+        result:=true;
+    finally
+      fpClose(f);
+    end;
   end;
 end;
 
-function PWMStatus: byte;                            {result: 0, 3 or 7}
+function PWMStatus: byte;                                {result: 0, 3 or 7}
 begin
   result:=0;
   if DirectoryExists(pathPWM) then
-    result:=1;
+    result:=1;                                           {System file created}
   if DirectoryExists(pathPWM+PWMchan0) then
-    result:=result or 2;
+    result:=result or 2;                                 {PWM channel 0 OK}
   if DirectoryExists(pathPWM+PWMchan1) then
-    result:=result or 4;
+    result:=result or 4;                                 {PWM channel 1 OK}
 end;
 
-function ActivatePWMChannels(both: boolean=true): byte;
+function ActivatePWMChannel(GPIOnr: string): byte;       {Activate one (0) or both PWM channels}
 var
   status: byte;
 
 begin
-  status:=PWMstatus;
+  status:=PWMstatus;                                     {Check wich channels are available}
   case status of
     1: begin
-         WritePWMFile(pathPWM+fPWMstart, '0');
-         if both then
-           WritePWMFile(pathPWM+fPWMstart, '1');
+         WriteSysFile(pathPWM+fSysStart, '0');
+         if GPIOnr='2' then
+           WriteSysFile(pathPWM+fSysStart, '1');
        end;
-    3: if both then
-         WritePWMFile(pathPWM+fPWMstart, '1');
+    3: if GPIOnr='2' then
+         WriteSysFile(pathPWM+fSysStart, '1');
   end;
+  sleep(waitfs);                                         {Wait for file system reaction}
   result:=PWMstatus;
 end;
 
-procedure DeactivatePWM;
+procedure DeactivatePWM;                                 {Deactivate and close HW-PWM channels}
 var
   status: byte;
 
 begin
   status:=PWMstatus;
   if status=3 then begin
-    WritePWMFile(pathPWM+PWMchan0+fenable, '0');
-    WritePWMFile(pathPWM+fPWMstop, '0');
+    WriteSysFile(pathPWM+PWMchan0+fenable, '0');
+    WriteSysFile(pathPWM+fSysStop, '0');
     exit;
   end;
   if status=7 then begin
-    WritePWMFile(pathPWM+PWMchan0+fenable, '0');  {disable PWM}
-    WritePWMFile(pathPWM+PWMchan1+fenable, '0');  {Switch off channel 0}
-    WritePWMFile(pathPWM+fPWMstop, '0');
-    WritePWMFile(pathPWM+fPWMstop, '1');          {Switch off channel 1}
+    WriteSysFile(pathPWM+PWMchan0+fenable, '0');         {disable PWM}
+    WriteSysFile(pathPWM+PWMchan1+fenable, '0');         {Switch off channel 0}
+    WriteSysFile(pathPWM+fSysStop, '0');
+    WriteSysFile(pathPWM+fSysStop, '1');                 {Switch off channel 1}
   end;
 end;
 
-procedure SetPWMChannel(chan: byte; freq, cycle: single);
+procedure DeactivateGPIO(GPIOnr: string);                {Deactivate and close GPIO pin}
+begin
+  WriteSysFile(pathGPIO+fSysStop, GPIOnr);
+end;
+
+function ActivateGPIO(GPIOnr: string): boolean;          {Open GPIO port as Out/Low as default}
+begin
+  result:=DirectoryExists(pathGPIO+fgpio+GPIOnr);
+  if not result then begin
+    WriteSysFile(pathGPIO+fSysStart, GPIOnr);
+    sleep(waitfs);
+  end;
+  if DirectoryExists(pathGPIO+fgpio+GPIOnr) then begin
+    WriteSysFile(pathGPIO+fgpio+GPIOnr+fDirection, 'out');
+    SetGPIO(GPIOnr);                                     {Send default 0}
+    result:=true;
+  end;
+end;
+
+procedure SetGPIO(GPIOnr: string; Gbit: char = '0');     {Send value 0 or 1 to out-pin}
+begin
+  WriteSysFile(pathGPIO+fgpio+GPIOnr+fValue, Gbit);
+end;
+
+procedure SetPWMChannel(const chan: byte; freq, cycle: uint32);
 var
-  speriod, scycle: PWMdata;
+  speriod, scycle: SysData;
 
 begin
-  speriod:=IntToStr(round(freq));
-  scycle:=IntToStr(round(cycle));
+  speriod:=IntToStr(freq*1000);                          {Convert from ns to micro seconds}
+  scycle:=IntToStr(cycle*1000);
   case chan of
     0: begin
-         WritePWMFile(pathPWM+PWMchan0+fperiod, speriod);
-         WritePWMFile(pathPWM+PWMchan0+fcycle, scycle);
-         WritePWMFile(pathPWM+PWMchan0+fenable, '1');
+         WriteSysFile(pathPWM+PWMchan0+fperiod, speriod);
+         WriteSysFile(pathPWM+PWMchan0+fcycle, scycle);
+         WriteSysFile(pathPWM+PWMchan0+fenable, '1');
        end;
     1: begin
-         WritePWMFile(pathPWM+PWMchan1+fperiod, speriod);
-         WritePWMFile(pathPWM+PWMchan1+fcycle, scycle);
-         WritePWMFile(pathPWM+PWMchan1+fenable, '1');
+         WriteSysFile(pathPWM+PWMchan1+fperiod, speriod);
+         WriteSysFile(pathPWM+PWMchan1+fcycle, scycle);
+         WriteSysFile(pathPWM+PWMchan1+fenable, '1');
        end;
   end;
 end;
 
-procedure SetPWMCycle(chan: byte; cycle: single);
+procedure SetPWMCycle(const chan: byte; cycle: uint32);  {Set duty cycle in micro sec}
 var
-  scycle: PWMdata;
+  scycle: SysData;
 
 begin
-  scycle:=IntToStr(Round(cycle));
+  scycle:=IntToStr(cycle*1000);
   case chan of
-    0: WritePWMFile(pathPWM+PWMchan0+fcycle, scycle);
-    1: WritePWMFile(pathPWM+PWMchan1+fcycle, scycle);
+    0: WriteSysFile(pathPWM+PWMchan0+fcycle, scycle);
+    1: WriteSysFile(pathPWM+PWMchan1+fcycle, scycle);
   end;
 end;
 
