@@ -1,0 +1,65 @@
+# Settings for ST16
+#
+# Defaults (could be changed by Channel Setting in ST16, be aware):
+# Channel  1 - Throttle THR
+# Channel  2 - Roll     AILL
+# Channel  3 - Pitch    ELE
+# Channel  4 - Yaw      RUD
+# Channel  5 - Flight mode
+# Channel  6 - RTH
+# Channel  7 - Camera tilt
+# Channel  8 - Camera pan
+# Channel  9 - Gimbal tilt mode
+# Channel 10 - Gimbal pan mode
+# Channel 11 - Landing gear
+# Channel 12 - Aux button
+#
+# Start/stop - Mixed to Throttle = 0
+# 
+# Servo output - PWM duty in micro seconds
+#
+[Servo 1]
+Channel = 1
+Minimum = 683
+Neutral = 2048
+Maximum = 3412
+
+[Servo 2]
+Channel = 2
+Minimum = 683
+Neutral = 2048
+Maximum = 3412
+
+[Servo 3]
+Channel = 3
+Minimum = 683
+Neutral = 2048
+Maximum = 3412
+
+[Servo 4]
+Channel = 4
+Minimum = 683
+Neutral = 2048
+Maximum = 3412
+
+[Servo 5]
+Channel = 4
+Minimum = 683
+Neutral = 2048
+Maximum = 3412
+
+[Servo 6]
+Channel = 4
+Minimum = 683
+Neutral = 2048
+Maximum = 3412
+
+# Default switches and knobs
+
+[Switch 1]
+Upper  position = 
+Middle position =
+Lower  position =
+
+[Start/stop]
+Active = 0

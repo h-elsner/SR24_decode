@@ -19,7 +19,8 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
-  ComCtrls, Spin, A3nalogGauge, MKnob, switches, AdvLed, SR24_dec, SR24_ctrl;
+  ComCtrls, Spin, A3nalogGauge, MKnob, switches, AdvLed, Types,
+  SR24_dec, SR24_ctrl, SR24_chsets;
 
 type
 
@@ -61,6 +62,7 @@ type
     ledStop: TAdvLed;
     Memo1: TMemo;
     mPan: TmKnob;
+    rgServo: TRadioGroup;
     rgType: TRadioGroup;
     swGear: TOnOffSwitch;
     pLeft: TPanel;
@@ -156,6 +158,7 @@ const
   asmin=900;
   asmax=2100;
   asmiddle=1500;
+  center=540;
 
 
 implementation
@@ -218,6 +221,7 @@ begin
   cgErrorFlags.Caption:=capError;
   mPan.Position:=m50Val;                           {1365 = 50%}
   TrackBar1.Enabled:=false;
+  rgServo.Tag:=0;
 end;
 
 procedure TForm1.speVoltChange(Sender: TObject);
@@ -390,8 +394,8 @@ begin
     Memo1.Lines.Add('PWM status now:  '+IntToStr(status));
     if status>1 then begin
       Memo1.Lines.Add('Set PWM freqency to '+FormatFloat('0.000', 1000/period)+'kHz');
-      SetPWMChannel(0, period, TrackBar1.Position);
-      SetPWMChannel(1, period, asmiddle);
+      SetPWMChannel(0, period, TrackBar1.Position, false);
+      SetPWMChannel(1, period, asmiddle, false);
       TrackBar1.Enabled:=true;
     end;
   end;
@@ -543,6 +547,18 @@ begin
   for i:=0 to high(coord) do                         {Empty receive buffer}
     coord[i]:=0;
   alt:=0;
+
+  if rgServo.ItemIndex>0 then begin                  {Set up PWM channels}
+    btnClose.Enabled:=false;
+    ActivatePWMChannel('2');                         {Activate both}
+    if PWMstatus>1 then begin
+      rgServo.Tag:=1;                                {PWM started}
+      btnClose.Enabled:=false;
+      SetPWMChannel(0, period, stkntrl-center, false);
+      SetPWMChannel(1, period, stkntrl-center, false);
+    end;
+  end;
+
   sr24Con;
   if UARTCanRead then begin
     lblStatus.Caption:='Connected';
@@ -579,6 +595,20 @@ begin
         mPan.Position:=stkup-pan;                    {Knob}
         lblPanVal.Caption:=IntToStr(pan)+'='+IntToStr(StkToProz(pan))+'%';
 
+        case rgServo.ItemIndex of
+          1: begin    {Throttle + Pitch}
+               SetPWMChannel(0, period, thr-center, false);
+               SetPWMChannel(1, period, pitch-center, false);
+             end;
+          2: begin    {Throttle + Pan}
+               SetPWMChannel(0, period, thr-center, false);
+               SetPWMChannel(1, period, pan-center, false);
+             end;
+          3: begin    {Pitch + Roll}
+               SetPWMChannel(0, period, pitch-center, false);
+               SetPWMChannel(1, period, roll-center, false);
+             end;
+        end;
         case GetChValue(data, 9) of                  {Example switch - Panmode}
           stkdown: lblPanMode.Caption:='Follow mode';
           m45val:  lblPanMode.Caption:='Team mode';
@@ -699,6 +729,11 @@ begin
   btnConnect.Enabled:=true;
   btnListenRaw.Enabled:=true;
   btnListen.Enabled:=true;
+  if rgServo.Tag>0 then begin                        {PWM channel were active}
+    DeactivatePWM;
+    btnClose.Enabled:=true;
+    rgServo.Tag:=0;
+  end;
 end;
 
 procedure TForm1.btnSaveClick(Sender: TObject);      {Save}

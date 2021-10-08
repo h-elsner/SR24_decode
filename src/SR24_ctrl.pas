@@ -6,6 +6,10 @@
  Basic GPIO control using the sysfs interface is slower than writing into memory
  but easier to program.
 
+
+
+
+
  PWM:
  https://github.com/raspberrypi/firmware/blob/master/boot/overlays/README
 
@@ -32,7 +36,6 @@
  echo 10000 > period    (100kHz)
  echo 5000 > duty_cycle (length pulse --> 1:1)
  echo 1 > enable
-
 
 }
 
@@ -75,7 +78,7 @@ function PWMStatus: byte;                                {0: PWM not activated,
 function ActivatePWMChannel(GPIOnr: string): byte;       {results PWM status after activation}
 procedure DeactivatePWM;                                 {Deactivate all PWM channels}
 procedure DeactivateGPIO(GPIOnr: string);                {Deactivate and close GPIO pin}
-procedure SetPWMChannel(const chan: byte; freq, cycle: uint32);
+procedure SetPWMChannel(const chan: byte; freq, cycle: uint32; revers: boolean = true);
 procedure SetPWMCycle(const chan: byte; cycle: uint32);  {Set duty cycle in micro seconds}
 function ActivateGPIO(GPIOnr: string): boolean;          {Open GPIO port as Out/Low as default}
 procedure SetGPIO(GPIOnr: string; Gbit: char = '0');     {Output on one GPIO out-pin}
@@ -172,7 +175,7 @@ begin
   WriteSysFile(pathGPIO+fgpio+GPIOnr+fValue, Gbit);
 end;
 
-procedure SetPWMChannel(const chan: byte; freq, cycle: uint32);
+procedure SetPWMChannel(const chan: byte; freq, cycle: uint32; revers: boolean = true);
 var
   speriod, scycle: SysData;
 
@@ -183,11 +186,15 @@ begin
     0: begin
          WriteSysFile(pathPWM+PWMchan0+fperiod, speriod);
          WriteSysFile(pathPWM+PWMchan0+fcycle, scycle);
+         if revers then
+           WriteSysFile(pathPWM+PWMchan0+frevers, keyrevers);
          WriteSysFile(pathPWM+PWMchan0+fenable, '1');
        end;
     1: begin
          WriteSysFile(pathPWM+PWMchan1+fperiod, speriod);
          WriteSysFile(pathPWM+PWMchan1+fcycle, scycle);
+         if revers then
+           WriteSysFile(pathPWM+PWMchan1+frevers, keyrevers);
          WriteSysFile(pathPWM+PWMchan1+fenable, '1');
        end;
   end;

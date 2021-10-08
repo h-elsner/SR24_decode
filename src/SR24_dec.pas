@@ -59,17 +59,6 @@ const
 	        255, 97, 85,                            {33: motor status, IMU status, Preessure compass}
 	        16, 5, 0, 40);                          {36: flight mode, vehicle type, error flags, gps_AccH}
 
-  stkang =2184;                                         {switch tilt angle, 10%}
-  stkntrl=2048;                                         {neutral; 0%}
-  stkdown=683;                                          {-100%}
-  stkup  =3412;                                         {+100%}
-  stkmax =4095;                                         {+150%}
-  stkmin=0;                                             {-150%}
-  m40val=1502;                                          {-40% Pan controllable}
-  m45val=1433;                                          {-40% Pan Team mode}
-  p50val=2730;                                          {+50%}
-  m50val=1365;                                          {-50%}
-
 
 var
   sr24ser: TBlockSerial;                                {UART access}
@@ -107,8 +96,7 @@ function SpeedToInt(alt: single): int16;                {Speed 2 byte}
 function GetNumSat(n: byte): byte;                      {Get number of sats from RC}
 function GetFixType(n: byte): byte;                     {Get GPS fix type}
 function GetGPSused(n: byte): boolean;                  {Get GPS used flag}
-function GetRSSI(data: TPayLoad): int16;                 {Get receiver RSSI in %}
-function StkToProz(const w: uint16): int16;             {Stick Position to percent}
+function GetRSSI(data: TPayLoad): int16;                {Get receiver RSSI in %}
 
 implementation
 
@@ -372,10 +360,6 @@ begin
   result:=round(data[6]*100/255);                       {in %}
 end;
 
-function StkToProz(const w: uint16): int16;             {Stick Position to percent}
-begin
-  result:=round(w/stkmax*300)-150;
-end;
 
 
 end.
