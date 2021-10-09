@@ -27,9 +27,16 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
+    btnSaveSettings: TButton;
     btnPWM: TButton;
     btnToggle: TButton;
     btnGstop: TButton;
+    btnLoadSettings: TButton;
+    lblPanConv: TLabel;
+    lblRollConv: TLabel;
+    lblPtchConv: TLabel;
+    lblThrConv: TLabel;
+    lblYawConv: TLabel;
     lblPanMode: TLabel;
     lblRSSIval: TLabel;
     lblPanVal: TLabel;
@@ -61,6 +68,7 @@ type
     lblStatus: TLabel;
     ledStop: TAdvLed;
     Memo1: TMemo;
+    mmoSettings: TMemo;
     mPan: TmKnob;
     rgServo: TRadioGroup;
     rgType: TRadioGroup;
@@ -87,6 +95,7 @@ type
     Label4: TLabel;
     Label5: TLabel;
     speSats: TSpinEdit;
+    tsSettings: TTabSheet;
     tbGPIO: TTabSheet;
     tbMirror: TTabSheet;
     TrackBar1: TTrackBar;
@@ -104,7 +113,7 @@ type
     Label2: TLabel;
     Label3: TLabel;
     mmoProtocol: TMemo;
-    pcMain: TPageControl;
+    pcTests: TPageControl;
     SaveDialog: TSaveDialog;
     speAlt: TFloatSpinEdit;
     tbRaw: TTabSheet;
@@ -116,11 +125,13 @@ type
     procedure btnListenClick(Sender: TObject);
     procedure btnListenRawClick(Sender: TObject);
     procedure btnPWMClick(Sender: TObject);
+    procedure btnSaveSettingsClick(Sender: TObject);
     procedure btnSendClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
     procedure btnToggleClick(Sender: TObject);
+    procedure btnLoadSettingsClick(Sender: TObject);
     procedure edFmodeChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure speVoltChange(Sender: TObject);
@@ -144,6 +155,7 @@ type
 var
   Form1: TForm1;
   SR24Connected: boolean;
+  csets: TSettings;
 
 const
   csvheader='Date/Time;MsgType;Counter;?;RSSI[%];PackageCtnr;CH0;CH1;CH2;CH3;CH4;CH5;CH6;CH7;CH8;CH9;CH10;CH11;lat;lon;alt;acc;speed;angle;Num Sats';
@@ -153,13 +165,6 @@ const
   aff='0.0';
   tab1=' ';
   capError='Error flags';
-
-  period=20000;                                      {Analog servo 20ms}
-  asmin=900;
-  asmax=2100;
-  asmiddle=1500;
-  center=540;
-
 
 implementation
 
@@ -210,6 +215,8 @@ begin
   Caption:='Record SR24 data stream';
   mmoProtocol.Text:='';
   mmoProtocol.Font.Name:='Liberation Mono';
+  mmoSettings.Clear;
+  mmoSettings.Font.Name:='Liberation Mono';
   Memo1.Lines.Clear;
   btnStop.Tag:=0;
   btnListen.Tag:=1;
@@ -222,6 +229,7 @@ begin
   mPan.Position:=m50Val;                           {1365 = 50%}
   TrackBar1.Enabled:=false;
   rgServo.Tag:=0;
+  ReadSettings(csets);                             {Load common settings}
 end;
 
 procedure TForm1.speVoltChange(Sender: TObject);
@@ -264,7 +272,7 @@ end;
 
 procedure TForm1.WriteProtocol(s: string);        {Catch output}
 begin
-  if pcMain.ActivePage=tbRaw then
+  if pcTests.ActivePage=tbRaw then
     mmoProtocol.Lines.Add(s);
 end;
 
@@ -380,7 +388,7 @@ var
   status: byte;
 
 begin
-  TrackBar1.Position:=asmiddle;                      {1500 micro sec}
+  TrackBar1.Position:=csets[1, 2];                      {1500 micro sec}
   btnClose.Enabled:=false;
   status:=PWMstatus;
   Memo1.Lines.Add('PWM status: '+IntToStr(status));
@@ -393,17 +401,22 @@ begin
     status:=PWMstatus;
     Memo1.Lines.Add('PWM status now:  '+IntToStr(status));
     if status>1 then begin
-      Memo1.Lines.Add('Set PWM freqency to '+FormatFloat('0.000', 1000/period)+'kHz');
-      SetPWMChannel(0, period, TrackBar1.Position, false);
-      SetPWMChannel(1, period, asmiddle, false);
+      Memo1.Lines.Add('Set PWM freqency to '+FormatFloat('0.000', 1000/csets[12, 1])+'kHz');
+      SetPWMChannel(0, csets[12, 1], TrackBar1.Position*1000, false);
+      SetPWMChannel(1, csets[12, 1], csets[1, 2]*1000, false);             {in ns}
       TrackBar1.Enabled:=true;
     end;
   end;
 end;
 
+procedure TForm1.btnSaveSettingsClick(Sender: TObject);
+begin
+  mmoSettings.Lines.SaveToFile(GetSettingsFile);
+end;
+
 procedure TForm1.TrackBar1Change(Sender: TObject);
 begin
-  setPWMCycle(0, TrackBar1.Position);                {micro seconds}
+  setPWMCycle(0, TrackBar1.Position*1000);            {in nano seconds}
 end;
 
 function StrToCoord(coord: string): single;
@@ -547,6 +560,7 @@ begin
   for i:=0 to high(coord) do                         {Empty receive buffer}
     coord[i]:=0;
   alt:=0;
+  ReadSettings(csets);                               {Load again common settings}
 
   if rgServo.ItemIndex>0 then begin                  {Set up PWM channels}
     btnClose.Enabled:=false;
@@ -554,8 +568,8 @@ begin
     if PWMstatus>1 then begin
       rgServo.Tag:=1;                                {PWM started}
       btnClose.Enabled:=false;
-      SetPWMChannel(0, period, stkntrl-center, false);
-      SetPWMChannel(1, period, stkntrl-center, false);
+      SetPWMChannel(0, csets[12, 1], csets[1, 2], false);  {Channel assignement not yet done !!}
+      SetPWMChannel(1, csets[12, 1], csets[1, 2], false);
     end;
   end;
 
@@ -578,10 +592,18 @@ begin
         barLright.Position:=stkntrl-yaw;
         barRup.Position:=pitch-stkntrl;
         barRdown.Position:=stkntrl-pitch;
+
         lblThrVal.Caption:=IntToStr(thr)+'='+IntToStr(StkToProz(thr))+'%';
+        lblThrConv.Caption:=IntToStr(StkToPWM(csets, 1, thr) div 1000);
+
         lblPitchVal.Caption:=IntToStr(pitch)+'='+IntToStr(StkToProz(pitch))+'%';
+        lblPtchConv.Caption:=IntToStr(StkToPWM(csets, 3, pitch) div 1000);
+
         lblRollVal.Caption:=IntToStr(roll)+'='+IntToStr(StkToProz(roll))+'%';
+        lblRollConv.Caption:=IntToStr(StkToPWM(csets, 2, roll) div 1000);
+
         lblYawVal.Caption:=IntToStr(yaw)+'='+IntToStr(StkToProz(yaw))+'%';
+        lblYawConv.Caption:=IntToStr(StkToPWM(csets, 4, yaw) div 1000);
 
         if thr=0 then begin                          {Mixed button -  start/stop}
           ledStop.State:=lsOn;
@@ -594,19 +616,20 @@ begin
         pan:=GetChValue(data, 7);
         mPan.Position:=stkup-pan;                    {Knob}
         lblPanVal.Caption:=IntToStr(pan)+'='+IntToStr(StkToProz(pan))+'%';
+        lblPanConv.Caption:=IntToStr(StkToPWM(csets, 8, pan) div 1000);
 
         case rgServo.ItemIndex of
           1: begin    {Throttle + Pitch}
-               SetPWMChannel(0, period, thr-center, false);
-               SetPWMChannel(1, period, pitch-center, false);
+               SetPWMChannel(0, csets[12, 1], StkToPWM(csets, 1, thr), false);
+               SetPWMChannel(1, csets[12, 1], StkToPWM(csets, 3, pitch), false);
              end;
           2: begin    {Throttle + Pan}
-               SetPWMChannel(0, period, thr-center, false);
-               SetPWMChannel(1, period, pan-center, false);
+               SetPWMChannel(0, csets[12, 1], StkToPWM(csets, 1, thr), false);
+               SetPWMChannel(1, csets[12, 1], StkToPWM(csets, 8, pan), false);
              end;
           3: begin    {Pitch + Roll}
-               SetPWMChannel(0, period, pitch-center, false);
-               SetPWMChannel(1, period, roll-center, false);
+               SetPWMChannel(0, csets[12, 1], StkToPWM(csets, 3, pitch), false);
+               SetPWMChannel(1, csets[12, 1], StkToPWM(csets, 2, roll), false);
              end;
         end;
         case GetChValue(data, 9) of                  {Example switch - Panmode}
@@ -769,6 +792,33 @@ begin
       Application.ProcessMessages;
     until btnToggle.Tag=1;                           {Results in ~ 10kHz with some gaps}
   end;
+end;
+
+procedure TForm1.btnLoadSettingsClick(Sender: TObject);
+var
+  fn: string;
+  testarr: TSettings;
+  li: TStringList;
+
+begin
+  fn:=GetSettingsFile;
+  if not FileExists(fn) then begin
+    WriteDefaultsSettings;
+    sleep(200);
+    mmoSettings.Lines.LoadFromFile(fn);
+  end else begin
+    mmoSettings.Lines.LoadFromFile(fn);
+    mmoSettings.Lines.SaveToFile(GetSettingsFile(true));   {Save a backup}
+  end;
+
+  ReadSettings(testarr);      {Just to check if the correct values were found}
+  li:=TStringList.Create;
+  li.Add('# Read from Array');
+  li.Add('');
+  SettingsToText(testarr, li);
+  li.SaveToFile(ChangeFileExt(fn, '.arr'));
+  li.free;
+
 end;
 
 procedure TForm1.edFmodeChange(Sender: TObject);

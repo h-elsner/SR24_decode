@@ -79,7 +79,7 @@ function ActivatePWMChannel(GPIOnr: string): byte;       {results PWM status aft
 procedure DeactivatePWM;                                 {Deactivate all PWM channels}
 procedure DeactivateGPIO(GPIOnr: string);                {Deactivate and close GPIO pin}
 procedure SetPWMChannel(const chan: byte; freq, cycle: uint32; revers: boolean = true);
-procedure SetPWMCycle(const chan: byte; cycle: uint32);  {Set duty cycle in micro seconds}
+procedure SetPWMCycle(const chan: byte; cycle: uint32);  {Set duty cycle in ns}
 function ActivateGPIO(GPIOnr: string): boolean;          {Open GPIO port as Out/Low as default}
 procedure SetGPIO(GPIOnr: string; Gbit: char = '0');     {Output on one GPIO out-pin}
 
@@ -180,8 +180,8 @@ var
   speriod, scycle: SysData;
 
 begin
-  speriod:=IntToStr(freq*1000);                          {Convert from ns to micro seconds}
-  scycle:=IntToStr(cycle*1000);
+  speriod:=IntToStr(freq*1000);                          {Convert from micro to ns, default: 20000}
+  scycle:=IntToStr(cycle);                               {Cycle in ns}
   case chan of
     0: begin
          WriteSysFile(pathPWM+PWMchan0+fperiod, speriod);
@@ -205,7 +205,7 @@ var
   scycle: SysData;
 
 begin
-  scycle:=IntToStr(cycle*1000);
+  scycle:=IntToStr(cycle);
   case chan of
     0: WriteSysFile(pathPWM+PWMchan0+fcycle, scycle);
     1: WriteSysFile(pathPWM+PWMchan1+fcycle, scycle);

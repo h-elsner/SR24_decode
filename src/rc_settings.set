@@ -13,53 +13,96 @@
 # Channel 10 - Gimbal pan mode
 # Channel 11 - Landing gear
 # Channel 12 - Aux button
-#
 # Start/stop - Mixed to Throttle = 0
 # 
-# Servo output - PWM duty in micro seconds
+# Servo output - PWM duty in micro seconds, common used 1100-1900
 #
+# 1  +------+    Default analog servo:
+#    |      |    Cycle = 20000             (= 20ms/50Hz)   
+#    |      |    Min   = 2100 
+#    |<---->|    Null  = 1500
+#    |      |    Min   = 900
+#    |      |
+# 0 -+      +----------------------+
+#
+# Correction values contains a factor to convert analog outputs to real values
+
+# Servo PWM settings
+PWM cycle = 20000
+PWM reverse = False
+
+# Correction factor
+Voltage = 1000
+Aux 1 = 1000
+Aux 2 = 1000
+Aux 3 = 1000
+
 [Servo 1]
 Channel = 1
-Minimum = 683
-Neutral = 2048
-Maximum = 3412
+Minimum = 900
+Neutral = 1500
+Maximum = 2100
 
 [Servo 2]
 Channel = 2
-Minimum = 683
-Neutral = 2048
-Maximum = 3412
+Minimum = 900
+Neutral = 1500
+Maximum = 2100
 
 [Servo 3]
 Channel = 3
-Minimum = 683
-Neutral = 2048
-Maximum = 3412
+Minimum = 900
+Neutral = 1500
+Maximum = 2100
 
 [Servo 4]
 Channel = 4
-Minimum = 683
-Neutral = 2048
-Maximum = 3412
+Minimum = 900
+Neutral = 1500
+Maximum = 2100
 
 [Servo 5]
-Channel = 4
-Minimum = 683
-Neutral = 2048
-Maximum = 3412
+Channel = 7
+Minimum = 900
+Neutral = 1500
+Maximum = 2100
 
 [Servo 6]
-Channel = 4
-Minimum = 683
-Neutral = 2048
-Maximum = 3412
-
-# Default switches and knobs
+Channel = 8
+Minimum = 1100
+Neutral = 1520
+Maximum = 1900
 
 [Switch 1]
-Upper  position = 
-Middle position =
-Lower  position =
+Channel = 5
+Upper  position = 3412
+Middle position = 2048
+Lower  position = 683
+
+[Switch 2]
+Channel = 9
+Upper  position = 2184
+Middle position = 2184
+Lower  position = 3412
+
+[Switch 3]
+Channel = 10
+Upper  position = 683
+Middle position = 1502
+Lower  position = 3412
+
+[Switch 4]
+Channel = 11
+Upper  position = 4095
+Middle position = 4095
+Lower  position = 0
+
+[Switch 5]
+Channel = 12
+Upper  position = 3412
+Middle position = 3412
+Lower  position = 683
 
 [Start/stop]
+Channel = 1
 Active = 0

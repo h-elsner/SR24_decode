@@ -1,11 +1,11 @@
 object Form1: TForm1
-  Left = 850
-  Height = 436
-  Top = 16
+  Left = 836
+  Height = 537
+  Top = 26
   Width = 820
   ActiveControl = btnBind
   Caption = 'Form1'
-  ClientHeight = 436
+  ClientHeight = 537
   ClientWidth = 820
   Constraints.MinHeight = 430
   Constraints.MinWidth = 820
@@ -103,24 +103,24 @@ object Form1: TForm1
       080000000202020202020202
     }
   end
-  object pcMain: TPageControl
+  object pcTests: TPageControl
     Left = 12
-    Height = 382
+    Height = 483
     Top = 48
     Width = 806
-    ActivePage = tbMirror
+    ActivePage = tsSettings
     Anchors = [akTop, akLeft, akRight, akBottom]
-    TabIndex = 2
+    TabIndex = 4
     TabOrder = 5
     object tbRaw: TTabSheet
       Caption = 'Raw data'
-      ClientHeight = 336
+      ClientHeight = 437
       ClientWidth = 796
       object mmoProtocol: TMemo
         Left = 0
-        Height = 322
+        Height = 441
         Top = 40
-        Width = 796
+        Width = 798
         Anchors = [akTop, akLeft, akRight, akBottom]
         Lines.Strings = (
           'Memo1'
@@ -157,7 +157,7 @@ object Form1: TForm1
         TabOrder = 3
       end
       object btnSave: TButton
-        Left = 684
+        Left = 686
         Height = 25
         Top = 7
         Width = 104
@@ -168,16 +168,16 @@ object Form1: TForm1
       end
       object cbGPSonly: TCheckBox
         Left = 240
-        Height = 25
+        Height = 19
         Top = 8
-        Width = 88
+        Width = 69
         Caption = 'Only GPS'
         TabOrder = 5
       end
     end
     object tbVolt: TTabSheet
       Caption = 'Test telemetry'
-      ClientHeight = 336
+      ClientHeight = 437
       ClientWidth = 796
       object Voltmeter: TA3nalogGauge
         Left = 216
@@ -473,7 +473,7 @@ object Form1: TForm1
     end
     object tbMirror: TTabSheet
       Caption = 'Demo'
-      ClientHeight = 336
+      ClientHeight = 437
       ClientWidth = 796
       object btnConnect: TButton
         Left = 8
@@ -592,6 +592,22 @@ object Form1: TForm1
           Caption = 'Yaw'
           ParentColor = False
         end
+        object lblYawConv: TLabel
+          Left = 0
+          Height = 20
+          Top = 112
+          Width = 67
+          Caption = 'Converted'
+          ParentColor = False
+        end
+        object lblThrConv: TLabel
+          Left = 120
+          Height = 20
+          Top = 24
+          Width = 67
+          Caption = 'Converted'
+          ParentColor = False
+        end
       end
       object pRight: TPanel
         Left = 552
@@ -675,6 +691,22 @@ object Form1: TForm1
           Top = 188
           Width = 33
           Caption = 'Pitch'
+          ParentColor = False
+        end
+        object lblRollConv: TLabel
+          Left = 0
+          Height = 20
+          Top = 112
+          Width = 67
+          Caption = 'Converted'
+          ParentColor = False
+        end
+        object lblPtchConv: TLabel
+          Left = 120
+          Height = 20
+          Top = 24
+          Width = 67
+          Caption = 'Converted'
           ParentColor = False
         end
       end
@@ -786,10 +818,18 @@ object Form1: TForm1
         )
         TabOrder = 7
       end
+      object lblPanConv: TLabel
+        Left = 392
+        Height = 20
+        Top = 57
+        Width = 67
+        Caption = 'Converted'
+        ParentColor = False
+      end
     end
     object tbGPIO: TTabSheet
       Caption = 'Control GPIO'
-      ClientHeight = 336
+      ClientHeight = 437
       ClientWidth = 796
       object btnPWM: TButton
         Left = 8
@@ -802,7 +842,7 @@ object Form1: TForm1
       end
       object Memo1: TMemo
         Left = 8
-        Height = 224
+        Height = 325
         Top = 104
         Width = 360
         Anchors = [akTop, akLeft, akBottom]
@@ -840,6 +880,41 @@ object Form1: TForm1
         Caption = 'Stop GPIO'
         OnClick = btnGstopClick
         TabOrder = 4
+      end
+    end
+    object tsSettings: TTabSheet
+      Caption = 'Settings'
+      ClientHeight = 437
+      ClientWidth = 796
+      object mmoSettings: TMemo
+        Left = 120
+        Height = 411
+        Top = 16
+        Width = 662
+        Anchors = [akTop, akLeft, akRight, akBottom]
+        Lines.Strings = (
+          'mmoSettings'
+        )
+        ScrollBars = ssAutoVertical
+        TabOrder = 0
+      end
+      object btnLoadSettings: TButton
+        Left = 8
+        Height = 25
+        Top = 16
+        Width = 104
+        Caption = 'Load settings'
+        OnClick = btnLoadSettingsClick
+        TabOrder = 1
+      end
+      object btnSaveSettings: TButton
+        Left = 8
+        Height = 25
+        Top = 56
+        Width = 104
+        Caption = 'Save settings'
+        OnClick = btnSaveSettingsClick
+        TabOrder = 2
       end
     end
   end
