@@ -83,8 +83,7 @@ function TestCRC8(data: TPayLoad; len: byte): boolean; inline;  {Check if datase
 function GetFloatFromBuf(data: TPayLoad; idx: byte): single;               {Get 4 byte float as single}
 function GetIntFromBuf(data: TPayLoad; idx, len: byte): integer;           {Get len bytes as integer big endian}
 procedure IntToTelemetry(var data: TPayload; w: integer; pos, len: byte);  {Convert integer to byte array}
-procedure GetSticks(data: TPayLoad; var thr, roll, pitch, yaw: uint16);    {Get stck controls Mode 2}
-function GetChValue(data: TPayLoad; chnr: byte): uint16;                   {Get value from on Channel, channel no starts with 0}
+function GetChValue(data: TPayLoad; chnr: byte): uint16;                   {Get value from on Channel, channel no starts with 1}
 function CoordToFloat(coord: integer): single;                             {Convert integer cooerdinates to float}
 function GetGPSdata(data: TPayLoad; var lat, lon, alt: single): boolean;   {Get lat, lon and alt from GPS data}
 
@@ -102,8 +101,8 @@ implementation
 
 procedure ConnectUART(port: string; var UARTconnected: boolean);
 begin
-  if not UARTconnected then begin
-    sr24ser:=TBlockSerial.Create;
+  if not UARTconnected then begin                       {UART Tx, GPIO 14, pin 8}
+    sr24ser:=TBlockSerial.Create;                       {UART Rx, GPIO 15, pin 10}
     sr24ser.Connect(port);
     sr24ser.Config(115200, 8, 'N', 1, false, false);    {Config 115200 baud, 8N1}
     UARTConnected:=true;
@@ -270,26 +269,16 @@ begin
     data[pos+len-1]:=data[pos+len-1] or $80;
 end;
 
-{Get the stick values in RC Mode2,  ch0, ch1,  ch2,   ch3}
-
-procedure GetSticks(data: TPayLoad; var thr, roll, pitch, yaw: uint16);
-begin
-  thr:=  data[8]*16+hi(data[9]);
-  roll:= lo(data[9])*256+data[10];
-  pitch:=data[11]*16+hi(data[12]);
-  yaw:=  lo(data[12])*256+data[13];
-end;
-
-function GetChValue(data: TPayLoad; chnr: byte): uint16; {Channel no from 0..12 or 0..23}
+function GetChValue(data: TPayLoad; chnr: byte): uint16; {Channel no from 1..12 or 1..24}
 var
   n: byte;
 
 begin
-  n:=(chnr div 2)*3+8;
-  if (chnr and 1)=0 then begin                          {even channel no Ch0...}
-    result:=data[n]*16+hi(data[n+1]);
-  end else begin                                        {uneven channel no Ch1...}
+  n:=((chnr-1) div 2)*3+8;
+  if (chnr and 1)=0 then begin                           {even channel no Ch0...}
     result:=lo(data[n+1])*256+data[n+2];
+  end else begin                                         {uneven channel no Ch1...}
+    result:=data[n]*16+hi(data[n+1]);
   end;
 end;
 

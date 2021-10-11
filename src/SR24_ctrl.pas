@@ -65,6 +65,9 @@ const
   keyRevers='inversed';
   keyNoRevers='normal';
 
+  ziff=['0'..'9'];
+  GPIOinvalid=28;
+
   waitfs=50;                                             {Wait for file system to create GPIO system file}
 
 
@@ -72,16 +75,18 @@ type
   SysData=string[16];                                    {16 is maximum length to send a string}
 
 function WriteSysFile(filename: string; const value: SysData): boolean;
+function ExtractGPIOnr(gpn: string): byte;               {GPIO number from name}
 function PWMStatus: byte;                                {0: PWM not activated,
                                                           3: Channel 0,
                                                           7: both 0 and 1 }
 function ActivatePWMChannel(GPIOnr: string): byte;       {results PWM status after activation}
 procedure DeactivatePWM;                                 {Deactivate all PWM channels}
-procedure DeactivateGPIO(GPIOnr: string);                {Deactivate and close GPIO pin}
-procedure SetPWMChannel(const chan: byte; freq, cycle: uint32; revers: boolean = true);
-procedure SetPWMCycle(const chan: byte; cycle: uint32);  {Set duty cycle in ns}
-function ActivateGPIO(GPIOnr: string): boolean;          {Open GPIO port as Out/Low as default}
-procedure SetGPIO(GPIOnr: string; Gbit: char = '0');     {Output on one GPIO out-pin}
+procedure DeactivateGPIO(GPIOnr: byte);                  {Deactivate and close GPIO pin}
+{Write data to PWM channel: PWM channel 0 or 1, PWM period in micro sec, cycle in ns, inversed-Default not}
+procedure SetPWMChannel(const PWMnr: byte; freq: uint32; cycle: uint64; revers: boolean = true);
+procedure SetPWMCycle(const PWMnr: byte; cycle: uint64); {Set duty cycle in ns}
+function ActivateGPIO(GPIOnr: byte): boolean;            {Open GPIO port as Out/Low as default}
+procedure SetGPIO(GPIOnr: byte; Gbit: char = '0');       {Output on one GPIO out-pin}
 
 implementation
 
@@ -100,6 +105,22 @@ begin
       fpClose(f);
     end;
   end;
+end;
+
+function ExtractGPIOnr(gpn: string): byte;               {GPIO number from name}
+var
+  i: integer;
+  s: string;
+
+begin
+  s:='';
+  result:=GPIOinvalid;                                   {invalid GPIO port}
+  for i:=1 to length(gpn) do
+    if gpn[i] in ziff then
+      s:=s+gpn[i];
+  i:=StrToInt(s);
+  if (i>4) and (i<GPIOinvalid) then                      {GPIO 5 .. GPIO 27}
+    result:=i;
 end;
 
 function PWMStatus: byte;                                {result: 0, 3 or 7}
@@ -151,38 +172,47 @@ begin
   end;
 end;
 
-procedure DeactivateGPIO(GPIOnr: string);                {Deactivate and close GPIO pin}
+procedure DeactivateGPIO(GPIOnr: byte);                  {Deactivate and close GPIO pin}
 begin
-  WriteSysFile(pathGPIO+fSysStop, GPIOnr);
+  if GPIOnr<GPIOinvalid then
+    WriteSysFile(pathGPIO+fSysStop, IntToStr(GPIOnr));
 end;
 
-function ActivateGPIO(GPIOnr: string): boolean;          {Open GPIO port as Out/Low as default}
+function ActivateGPIO(GPIOnr: byte): boolean;            {Open GPIO port as Out/Low as default}
+var
+  gpn: string;
+
 begin
-  result:=DirectoryExists(pathGPIO+fgpio+GPIOnr);
-  if not result then begin
-    WriteSysFile(pathGPIO+fSysStart, GPIOnr);
-    sleep(waitfs);
+  if GPIOnr<GPIOinvalid then begin
+    gpn:=IntToStr(GPIOnr);
+    result:=DirectoryExists(pathGPIO+fgpio+gpn);
+    if not result then begin
+      WriteSysFile(pathGPIO+fSysStart, gpn);
+      sleep(waitfs);
+    end;
+    if DirectoryExists(pathGPIO+fgpio+gpn) then begin
+      WriteSysFile(pathGPIO+fgpio+gpn+fDirection, 'out');
+      SetGPIO(GPIOnr);                                   {Send default 0}
+      result:=true;
+    end;
   end;
-  if DirectoryExists(pathGPIO+fgpio+GPIOnr) then begin
-    WriteSysFile(pathGPIO+fgpio+GPIOnr+fDirection, 'out');
-    SetGPIO(GPIOnr);                                     {Send default 0}
-    result:=true;
-  end;
 end;
 
-procedure SetGPIO(GPIOnr: string; Gbit: char = '0');     {Send value 0 or 1 to out-pin}
+procedure SetGPIO(GPIOnr: byte; Gbit: char = '0');       {Send value 0 or 1 to out-pin}
 begin
-  WriteSysFile(pathGPIO+fgpio+GPIOnr+fValue, Gbit);
+  if GPIOnr<GPIOinvalid then
+    WriteSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue, Gbit);
 end;
 
-procedure SetPWMChannel(const chan: byte; freq, cycle: uint32; revers: boolean = true);
+{Write data to PWM channel: PWM channel 0 or 1, PWM period in micro sec, cycle in ns, inversed-Default not}
+procedure SetPWMChannel(const PWMnr: byte; freq: uint32; cycle: uint64; revers: boolean = true);
 var
   speriod, scycle: SysData;
 
 begin
   speriod:=IntToStr(freq*1000);                          {Convert from micro to ns, default: 20000}
   scycle:=IntToStr(cycle);                               {Cycle in ns}
-  case chan of
+  case PWMnr of
     0: begin
          WriteSysFile(pathPWM+PWMchan0+fperiod, speriod);
          WriteSysFile(pathPWM+PWMchan0+fcycle, scycle);
@@ -200,13 +230,13 @@ begin
   end;
 end;
 
-procedure SetPWMCycle(const chan: byte; cycle: uint32);  {Set duty cycle in micro sec}
+procedure SetPWMCycle(const PWMnr: byte; cycle: uint64);  {Set duty cycle in ns}
 var
   scycle: SysData;
 
 begin
   scycle:=IntToStr(cycle);
-  case chan of
+  case PWMnr of
     0: WriteSysFile(pathPWM+PWMchan0+fcycle, scycle);
     1: WriteSysFile(pathPWM+PWMchan1+fcycle, scycle);
   end;

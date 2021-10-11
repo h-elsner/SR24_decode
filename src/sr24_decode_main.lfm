@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 836
+  Left = 851
   Height = 537
-  Top = 26
+  Top = 12
   Width = 820
   ActiveControl = btnBind
   Caption = 'Form1'
@@ -108,9 +108,9 @@ object Form1: TForm1
     Height = 483
     Top = 48
     Width = 806
-    ActivePage = tsSettings
+    ActivePage = tbMirror
     Anchors = [akTop, akLeft, akRight, akBottom]
-    TabIndex = 4
+    TabIndex = 2
     TabOrder = 5
     object tbRaw: TTabSheet
       Caption = 'Raw data'
@@ -168,9 +168,9 @@ object Form1: TForm1
       end
       object cbGPSonly: TCheckBox
         Left = 240
-        Height = 19
+        Height = 25
         Top = 8
-        Width = 69
+        Width = 88
         Caption = 'Only GPS'
         TabOrder = 5
       end
@@ -809,12 +809,13 @@ object Form1: TForm1
         ChildSizing.ControlsPerLine = 1
         ClientHeight = 139
         ClientWidth = 223
-        ItemIndex = 0
+        ItemIndex = 4
         Items.Strings = (
           'None'
           'Throttle+Pitch'
           'Trottle+Pan'
           'Pitch+Roll'
+          'via Settings'
         )
         TabOrder = 7
       end
@@ -852,15 +853,15 @@ object Form1: TForm1
         ScrollBars = ssAutoVertical
         TabOrder = 1
       end
-      object TrackBar1: TTrackBar
+      object trbServo: TTrackBar
         Left = 8
         Height = 50
         Top = 40
         Width = 360
         Max = 2100
         Min = 900
-        OnChange = TrackBar1Change
-        Position = 900
+        OnChange = trbServoChange
+        Position = 1500
         TabOrder = 2
       end
       object btnToggle: TButton
@@ -922,10 +923,10 @@ object Form1: TForm1
     Left = 496
     Top = 8
   end
-  object Timer1: TTimer
+  object tmBind: TTimer
     Enabled = False
     Interval = 200
-    OnTimer = Timer1Timer
+    OnTimer = tmBindTimer
     Left = 432
     Top = 8
   end

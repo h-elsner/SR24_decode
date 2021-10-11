@@ -19,7 +19,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
-  ComCtrls, Spin, A3nalogGauge, MKnob, switches, AdvLed, Types,
+  ComCtrls, Spin, A3nalogGauge, MKnob, switches, AdvLed,
   SR24_dec, SR24_ctrl, SR24_chsets;
 
 type
@@ -98,7 +98,7 @@ type
     tsSettings: TTabSheet;
     tbGPIO: TTabSheet;
     tbMirror: TTabSheet;
-    TrackBar1: TTrackBar;
+    trbServo: TTrackBar;
     Voltmeter: TA3nalogGauge;
     btnBind: TButton;
     btnStop: TButton;
@@ -118,7 +118,7 @@ type
     speAlt: TFloatSpinEdit;
     tbRaw: TTabSheet;
     tbVolt: TTabSheet;
-    Timer1: TTimer;
+    tmBind: TTimer;
     procedure btnBindClick(Sender: TObject);
     procedure btnConnectClick(Sender: TObject);
     procedure btnGstopClick(Sender: TObject);
@@ -135,8 +135,8 @@ type
     procedure edFmodeChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure speVoltChange(Sender: TObject);
-    procedure Timer1Timer(Sender: TObject);
-    procedure TrackBar1Change(Sender: TObject);
+    procedure tmBindTimer(Sender: TObject);
+    procedure trbServoChange(Sender: TObject);
   private
     function ErrorStatus: byte;
     procedure Sendtest(data: TPayload);
@@ -220,14 +220,14 @@ begin
   Memo1.Lines.Clear;
   btnStop.Tag:=0;
   btnListen.Tag:=1;
-  Timer1.Tag:=1;
-  Timer1.Enabled:=false;
+  tmBind.Tag:=1;
+  tmBind.Enabled:=false;
   SR24connected:=false;
   Voltmeter.Position:=speVolt.Value;
   lblFmode.Caption:=ModeLegacy(StrToIntDef(edFmode.Text, 16));
   cgErrorFlags.Caption:=capError;
   mPan.Position:=m50Val;                           {1365 = 50%}
-  TrackBar1.Enabled:=false;
+  trbServo.Enabled:=false;
   rgServo.Tag:=0;
   ReadSettings(csets);                             {Load common settings}
 end;
@@ -265,7 +265,7 @@ var
 
 begin
   result:='';
-  for i:=0 to numch-1 do begin
+  for i:=1 to numch do begin
     result:=result+IntToStr(GetChValue(data, i))+sep;
   end;
 end;
@@ -310,15 +310,15 @@ begin
   btnClose.Enabled:=true;
 end;
 
-procedure TForm1.Timer1Timer(Sender: TObject);       {sends 5 times bind message}
+procedure TForm1.tmBindTimer(Sender: TObject);       {sends 5 times bind message}
 begin
-  Timer1.Enabled:=false;
+  tmBind.Enabled:=false;
   SendBind;
-  Timer1.Tag:=Timer1.Tag+1;
-  if Timer1.Tag>5 then begin
-    Timer1.Tag:=1;
+  tmBind.Tag:=tmBind.Tag+1;
+  if tmBind.Tag>5 then begin
+    tmBind.Tag:=1;
   end else
-    Timer1.Enabled:=true;
+    tmBind.Enabled:=true;
 end;
 
 function TForm1.OutData(data: TPayLoad): boolean;    {Decode and show received package}
@@ -369,8 +369,8 @@ begin
   btnStop.Enabled:=true;
   btnListenRaw.Enabled:=false;
   btnListen.Enabled:=false;
-  Timer1.Tag:=1;
-  Timer1.Enabled:=true;
+  tmBind.Tag:=1;
+  tmBind.Enabled:=true;
   sr24Con;
 end;
 
@@ -388,7 +388,6 @@ var
   status: byte;
 
 begin
-  TrackBar1.Position:=csets[1, 2];                      {1500 micro sec}
   btnClose.Enabled:=false;
   status:=PWMstatus;
   Memo1.Lines.Add('PWM status: '+IntToStr(status));
@@ -401,10 +400,10 @@ begin
     status:=PWMstatus;
     Memo1.Lines.Add('PWM status now:  '+IntToStr(status));
     if status>1 then begin
-      Memo1.Lines.Add('Set PWM freqency to '+FormatFloat('0.000', 1000/csets[12, 1])+'kHz');
-      SetPWMChannel(0, csets[12, 1], TrackBar1.Position*1000, false);
-      SetPWMChannel(1, csets[12, 1], csets[1, 2]*1000, false);             {in ns}
-      TrackBar1.Enabled:=true;
+      Memo1.Lines.Add('Set PWM freqency to '+FormatFloat('0.000', 1000/csets[12, 3])+'kHz');
+      SetPWMChannel(0, csets[12, 3], trbServo.Position*1000, false);
+      SetPWMChannel(1, csets[12, 3], csets[1, 2]*1000, false);             {in ns}
+      trbServo.Enabled:=true;
     end;
   end;
 end;
@@ -414,9 +413,9 @@ begin
   mmoSettings.Lines.SaveToFile(GetSettingsFile);
 end;
 
-procedure TForm1.TrackBar1Change(Sender: TObject);
+procedure TForm1.trbServoChange(Sender: TObject);
 begin
-  setPWMCycle(0, TrackBar1.Position*1000);            {in nano seconds}
+  setPWMCycle(0, trbServo.Position*1000);            {in nano seconds}
 end;
 
 function StrToCoord(coord: string): single;
@@ -538,6 +537,86 @@ begin
   WriteProtocol(s+HexStr(crc, 2));
 end;
 
+procedure InitServos;                                {Initialize Servos. Only two can get HW PWM channels 0 or 1}
+var
+  i, pio: byte;
+
+begin
+  for i:= 1 to 6 do begin                            {For all 6 servos}
+    pio:=csets[i, 4];
+    if pio<2 then begin
+      SetPWMChannel(pio, csets[12, 3],
+                    csets[i, 2]*1000,                {Neutral position}
+                    (csets[i, 5]=1));
+    end;
+  end;
+end;
+
+procedure ControlServos(dat: TPayLoad);              {Write pulse duration to PWM}
+var
+  i, pio: byte;
+
+begin
+  for i:=1 to 6 do begin                             {For all 6 servos}
+    pio:=csets[i, 4];
+    if pio<2 then
+      SetPWMCycle(pio, StkToPWM(csets, i, GetChValue(dat, csets[i, 0])));
+  end;
+end;
+
+procedure GPIOon;                                    {Switch all used GPIO ports to out/0}
+var
+  i, g: byte;
+
+begin
+  for i:=1 to 11 do begin
+    g:=csets[i, 4];
+    if (g<notused) and (g>4) then
+      ActivateGPIO(g);
+    g:=csets[i, 5];
+    if (g<notused) and (g>4) then
+      ActivateGPIO(g);
+  end;
+end;
+
+procedure GPIOoff;                                   {Switch off all used GPIO ports}
+var
+  i, g: byte;
+
+begin
+  for i:=1 to 11 do begin
+    g:=csets[i, 4];
+    if (g<notused) and (g>4) then
+      DeActivateGPIO(g);
+    g:=csets[i, 5];
+    if (g<notused) and (g>4) then
+      DeActivateGPIO(g);
+  end;
+end;
+
+procedure ControlSwitches(dat: TPayLoad);            {Send switches to GPIO port}
+var
+  i, pio, sw: byte;
+
+begin
+  for i:=1 to 11 do begin
+    sw:=SwitchPos(csets, i, GetChValue(dat, csets[i, 0]));
+    pio:=csets[i, 4];                                {First GPIO port for op/middle position as on/off}
+    if (pio<notused) and (pio>4) then
+      if sw=1 then
+        SetGPIO(pio, '1')
+      else
+        SetGPIO(pio, '0');
+
+    pio:=csets[i, 5];                                {For 3-way switches use second GPIO, port}
+    if (pio<notused) and (pio>4) then
+      if sw=3 then                                   {Low}
+        SetGPIO(pio, '1')
+      else
+        SetGPIO(pio, '0');
+  end;
+end;
+
 procedure TForm1.btnConnectClick(Sender: TObject);   {Mirroring}
 var
   data, tele: TPayLoad;
@@ -568,13 +647,13 @@ begin
     if PWMstatus>1 then begin
       rgServo.Tag:=1;                                {PWM started}
       btnClose.Enabled:=false;
-      SetPWMChannel(0, csets[12, 1], csets[1, 2], false);  {Channel assignement not yet done !!}
-      SetPWMChannel(1, csets[12, 1], csets[1, 2], false);
+      InitServos;                                    {Set up PWM channels}
     end;
   end;
 
   sr24Con;
   if UARTCanRead then begin
+    GPIOon;
     lblStatus.Caption:='Connected';
     repeat
       if UARTreadMsg(data) then begin
@@ -583,7 +662,11 @@ begin
             coord[i]:=data[26+i];                    {Store coordinates}
           alt:=GetFloatFromBuf(data, 34);            {Store altitude}
         end;
-        GetSticks(data, thr, roll, pitch, yaw);      {Sticks}
+        thr:=  GetChValue(data, 1);
+        roll:= GetChValue(data, 2);
+        pitch:=GetChValue(data, 3);
+        yaw:=  GetChValue(data, 4);
+
         barLup.Position:=thr-stkntrl;
         barLdown.Position:=stkntrl-thr;
         barRLeft.Position:=roll-stkntrl;
@@ -612,37 +695,39 @@ begin
         end else
           ledStop.State:=lsDisabled;
 
-        pbTilt.Position:=GetChValue(data, 6);        {Slider}
-        pan:=GetChValue(data, 7);
+        pbTilt.Position:=GetChValue(data, 7);        {Slider}
+        pan:=GetChValue(data, 8);
         mPan.Position:=stkup-pan;                    {Knob}
         lblPanVal.Caption:=IntToStr(pan)+'='+IntToStr(StkToProz(pan))+'%';
-        lblPanConv.Caption:=IntToStr(StkToPWM(csets, 8, pan) div 1000);
+        lblPanConv.Caption:=IntToStr(StkToPWM(csets, 6, pan) div 1000);
 
         case rgServo.ItemIndex of
           1: begin    {Throttle + Pitch}
-               SetPWMChannel(0, csets[12, 1], StkToPWM(csets, 1, thr), false);
-               SetPWMChannel(1, csets[12, 1], StkToPWM(csets, 3, pitch), false);
+               SetPWMChannel(0, csets[12, 3], StkToPWM(csets, 1, thr), false);
+               SetPWMChannel(1, csets[12, 3], StkToPWM(csets, 3, pitch), false);
              end;
           2: begin    {Throttle + Pan}
-               SetPWMChannel(0, csets[12, 1], StkToPWM(csets, 1, thr), false);
-               SetPWMChannel(1, csets[12, 1], StkToPWM(csets, 8, pan), false);
+               SetPWMChannel(0, csets[12, 3], StkToPWM(csets, 1, thr), false);
+               SetPWMChannel(1, csets[12, 3], StkToPWM(csets, 6, pan), false);
              end;
           3: begin    {Pitch + Roll}
-               SetPWMChannel(0, csets[12, 1], StkToPWM(csets, 3, pitch), false);
-               SetPWMChannel(1, csets[12, 1], StkToPWM(csets, 2, roll), false);
+               SetPWMChannel(0, csets[12, 3], StkToPWM(csets, 3, pitch), false);
+               SetPWMChannel(1, csets[12, 3], StkToPWM(csets, 2, roll), false);
              end;
+          4: ControlServos(data);                    {Servo assignement from settings}
         end;
-        case GetChValue(data, 9) of                  {Example switch - Panmode}
+        ControlSwitches(data);
+        case GetChValue(data, 10) of                 {Example switch - Panmode}
           stkdown: lblPanMode.Caption:='Follow mode';
           m45val:  lblPanMode.Caption:='Team mode';
           m40val:  lblPanMode.Caption:='Follow pan controllable';
           stkup:   lblPanMode.Caption:='Global mode';
         end;
-        case GetChValue(data, 10) of                 {Gear Switch}
+        case GetChValue(data, 11) of                 {Gear Switch}
           stkmin: swGear.Checked:=false;             {0 - up}
           stkmax: swGear.Checked:=true;              {4095 - down}
         end;
-        case GetChValue(data, 11) of                 {Example Push button}
+        case GetChValue(data, 12) of                 {Example Push button}
           stkmin: ledAux.State:=lsOn;                {Aux on}
           stkmax: ledAux.State:=lsDisabled;          {Aux off}
         end;
@@ -658,7 +743,7 @@ begin
           IntToTelemetry(tele, AltitudeToInt(alt), 14, 4);  {Mirror Altitude m}
           pbRSSI.Position:=GetRSSI(data);            {Show RSSI level}
           lblRSSIval.Caption:=IntToStr(data[6])+'='+IntToStr(GetRSSI(data))+'%';
-          case GetChValue(data, 4) of
+          case GetChValue(data, 5) of
             stkdown: tele[36]:=13;                   {683 - RTH coming}
             stkntrl: tele[36]:=3;                    {2048 - Angle mode}
             stkup:   tele[36]:=6;                    {3412 - Smart}
@@ -685,13 +770,13 @@ end;
 
 procedure TForm1.btnGstopClick(Sender: TObject);
 begin
-  TrackBar1.Enabled:=false;
+  trbServo.Enabled:=false;
   DeactivatePWM;
   Memo1.Lines.Add('PWM status deactivated: '+inttostr(PWMstatus));
   btnClose.Enabled:=true;
   btnToggle.Tag:=1;
   btnClose.Enabled:=true;
-  DeactivateGPIO('23');
+  DeactivateGPIO(23);
   Memo1.Lines.Add('GPIO pin 23 deactivated');
 end;
 
@@ -745,7 +830,7 @@ end;
 
 procedure TForm1.btnStopClick(Sender: TObject);      {Stop}
 begin
-  Timer1.Enabled:=false;
+  tmBind.Enabled:=false;
   btnStop.Tag:=1;
   btnStop.Enabled:=false;
   btnBind.Enabled:=true;
@@ -757,6 +842,7 @@ begin
     btnClose.Enabled:=true;
     rgServo.Tag:=0;
   end;
+  GPIOoff;
 end;
 
 procedure TForm1.btnSaveClick(Sender: TObject);      {Save}
@@ -770,22 +856,22 @@ end;
 
 procedure TForm1.btnCloseClick(Sender: TObject);     {Close}
 begin
-  Timer1.Enabled:=false;
+  tmBind.Enabled:=false;
   btnStop.Tag:=1;
   Close;
 end;
 
 procedure TForm1.btnToggleClick(Sender: TObject);    {Toggle GPIO23 as fast as possible}
 var
-  g: string;
+  g: byte;
 
 begin
   btnToggle.Tag:=0;
   btnClose.Enabled:=false;
-  g:='23';
+  g:=23;
   Memo1.Lines.Add(pathGPIO+fSysStart);
   if ActivateGPIO(g) then begin
-    Memo1.Lines.Add(pathGPIO+fgpio+g+fValue);
+    Memo1.Lines.Add(pathGPIO+fgpio+IntToStr(g)+fValue);
     repeat
       SetGPIO(g, '1');
       SetGPIO(g);
