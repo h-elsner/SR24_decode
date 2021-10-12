@@ -576,14 +576,6 @@ object Form1: TForm1
           Caption = 'Yaw'
           ParentColor = False
         end
-        object lblThrVal: TLabel
-          Left = 120
-          Height = 20
-          Top = 188
-          Width = 22
-          Caption = 'Thr'
-          ParentColor = False
-        end
         object lblYawVal: TLabel
           Left = 0
           Height = 20
@@ -592,20 +584,12 @@ object Form1: TForm1
           Caption = 'Yaw'
           ParentColor = False
         end
-        object lblYawConv: TLabel
-          Left = 0
-          Height = 20
-          Top = 112
-          Width = 67
-          Caption = 'Converted'
-          ParentColor = False
-        end
-        object lblThrConv: TLabel
+        object lblThrVal: TLabel
           Left = 120
           Height = 20
-          Top = 24
-          Width = 67
-          Caption = 'Converted'
+          Top = 184
+          Width = 51
+          Caption = 'Throttle'
           ParentColor = False
         end
       end
@@ -691,22 +675,6 @@ object Form1: TForm1
           Top = 188
           Width = 33
           Caption = 'Pitch'
-          ParentColor = False
-        end
-        object lblRollConv: TLabel
-          Left = 0
-          Height = 20
-          Top = 112
-          Width = 67
-          Caption = 'Converted'
-          ParentColor = False
-        end
-        object lblPtchConv: TLabel
-          Left = 120
-          Height = 20
-          Top = 24
-          Width = 67
-          Caption = 'Converted'
           ParentColor = False
         end
       end
@@ -818,14 +786,6 @@ object Form1: TForm1
           'via Settings'
         )
         TabOrder = 7
-      end
-      object lblPanConv: TLabel
-        Left = 392
-        Height = 20
-        Top = 57
-        Width = 67
-        Caption = 'Converted'
-        ParentColor = False
       end
     end
     object tbGPIO: TTabSheet

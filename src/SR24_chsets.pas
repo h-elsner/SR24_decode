@@ -10,6 +10,20 @@
 
 Set unused servos and button to neutral, default values
 
+  PWM 0     Hardware PWM0 auf GPIO 18, pin 12
+  PWM 1     Hardware PWM1 auf GPIO 13, pin 33
+  GPIO 5    Pin 29
+  GPIO 6    Pin 31
+  GPIO 12   Pin 32
+  GPIO 16   Pin 36
+  GPIO 17   Pin 11
+  GPIO 22   Pin 15
+  GPIO 23   Pin 16
+  GPIO 24   Pin 18
+  GPIO 25   Pin 22
+  GPIO 26   Pin 37
+  GPIO 27   Pin 13   keep the other GPIO pins free for sensors
+
 }
 
 unit SR24_chsets;
@@ -22,7 +36,7 @@ uses
   sysutils, classes, FileUtil;
 
 type
-  TSettings = array[0..12, 0..5] of integer;            {Channel settings array: servos, values}
+  TSettings = array[0..12, 0..5] of uint16;             {Channel settings array: servos, values}
 
 const
   filename_settings='rc_settings.set';
@@ -49,6 +63,8 @@ const
   aux3=  'Aux 3';
   aux4=  'Aux 4';
   aux5=  'Aux 5';
+  pwmcycle='PWM cycle';
+  pwmrev=  'PWM reverse';
 
   chnr=  'Channel';
   svmin= 'Minimum';
@@ -62,32 +78,12 @@ const
   pio=   'GPIOnum';
   pio2=  'GPIOnum 2';                                   {Two GPIO ports for 3-way switches}
 
-  pwmcycle='PWM cycle';
-  pwmrev=  'PWM reverse';
-
-(*
-  pwm0='PWM 0';                                         {Hardware PWM0 auf GPIO 18, pin 12}
-  pwm1='PWM 1';                                         {Hardware PWM1 auf GPIO 13, pin 33}
-  gpio5= 'GPIO 5';                                      {Pin 29}
-  gpio6= 'GPIO 6';                                      {Pin 31}
-  gpio12='GPIO 12';                                     {Pin 32}
-  gpio16='GPIO 16';                                     {Pin 36}
-  gpio17='GPIO 17';                                     {Pin 11}
-  gpio22='GPIO 22';                                     {Pin 15}
-  gpio23='GPIO 23';                                     {Pin 16}
-  gpio24='GPIO 24';                                     {Pin 18}
-  gpio25='GPIO 25';                                     {Pin 22}
-  gpio26='GPIO 26';                                     {Pin 37}
-  gpio27='GPIO 27';                                     {Pin 13; keep the other GPIO pins free for sensors}
-*)
-
   comment='#';
   assgn=  ' = ';                                        {Separator between ID and value}
   ObjID1= '[';
   ObjID2= ']';
   lzch=   ' ';
-
-  notused=88;
+  notused=88;                                           {Set as GPIOnr for unused channels}
 
   DefaultSettings: TSettings =  {Correction factors for analog input: voltage, Aux1-Aux5}
                                 ((1000, 1000, 1000, 1000, 1000, 1000),
@@ -111,12 +107,12 @@ procedure ReadSettings(var sets: TSettings);            {Fill settings array fro
 function StkToPWM(sets: TSettings; servo: byte;         {Analog stick position to PWM in ns}
                   value: uint16): uint64;
 function SwitchPos(sets: TSettings; switch: byte;       {Position up..1, middle..2, down..3}
-                   value: integer; defaultpos: byte = 2): byte;
+                   value: uint16; defaultpos: byte = 2): byte;
 function StartStop(sets: TSettings; channel: byte;
-                   value: integer): boolean;            {Start/stop active or not}
+                   value: uint16): boolean;             {Start/stop active or not}
 function StkToProz(const w: uint16): int16;             {Stick Position to percent}
 function VoltToTelemetry(sets: TSettings;               {Voltage to Yuneec format with correction factor}
-                         volt: integer): byte;
+                         volt: uint16): byte;
 
 implementation
 
@@ -130,9 +126,9 @@ implementation
 function GetControlType(idx: byte): byte;               {Check if servos (1) or switches (7)}
 begin
   case idx of
-    0: result:=0;                                       {Correction factors}
-    1..6: result:=1;                                    {Servos}
-    7..11: result:=7;                                   {Switches}
+    0:      result:=0;                                  {Correction factors}
+    1..6:   result:=1;                                  {Servos}
+    7..11:  result:=7;                                  {Switches}
   else
     result:=idx;
   end;
@@ -143,33 +139,6 @@ begin
   result:=ExtractFilePath(paramstr(0))+filename_settings;
   if bak then
     result:=ChangeFileExt(result, '.bak');
-end;
-
-{Check if enough lines in setting file (at least 2 lines) and
- if there are assignements parameter name to value in.
- Not a sharp valitity test but better than nothing.
- All default values in setting array remains untouched if something went wrong.
- Corrects the input if data separator is not ' = ', i.e. space forgotten}
-
-function CheckSettings(var liste: TStringList): boolean;        {Correct data separator}
-var
-  i, p: integer;
-  s: string;
-
-begin
-  result:=false;
-  if liste.Count>1 then begin                                   {A minimum of settings}
-    for i:=0 to liste.Count-1 do begin
-      s:=liste[i];
-      if (length(s)>5) and (s[1]<>comment) then begin
-        p:=pos(assgn[2], s);
-        if p>2 then begin
-
-          result:=true;                                         {There possibly are settings in the list}
-        end;
-      end;
-    end;
-  end;
 end;
 
 {Read the settings array and write the related text file.
@@ -263,7 +232,7 @@ end;
 
  Columns for switches: 0..channel, 1..up, 2..middle, 3..down, 4..GPIOnr, 5..GPIOnr2
  Columns for servos:   0..channel, 1..min, 2..neutral, 3..max, 4..GPIOnr, 5..Revers
- Index 12:             0..channel, 1..value for Active, 3..GPIOnr, 4..PWM period in micro sec, 5..n/a
+ Column 12:            0..channel, 1..Red btn active, 2..GPIOnr, 3..PWMcycle, 4..n/a, 5..n/a
 
  All default values in setting array remains untouched if something went wrong
  or is missing or there is no need to change it.}
@@ -281,119 +250,117 @@ begin
   if FileExists(s) then begin
     inlist:=TStringList.Create;
     inlist.LoadFromFile(s);
-    if CheckSettings(inlist) then begin
-      try
-        for i:=0 to inlist.Count-1 do begin             {Read the settings file line by line}
-          s:=trim(inlist[i]);
-          if (s<>'') and (s[1]<>comment) then begin     {Skip comments}
-            if s[1]=ObjID1 then begin                   {Find sections}
-              idx:=notused;
-              objx:=trim(s.split([ObjID1, ObjID2])[1]);
-              if objx.Split([lzch])[0]=svx then         {Servos}
-                idx:=StrToIntDef(objx.Split([lzch])[1], 1);
-              if objx.Split([lzch])[0]=swx then         {Switches}
-                idx:=StrToIntDef(objx.Split([lzch])[1], 1)+6;
-            end else begin                              {Values with fix positions in array}
-              if s.Split([assgn])[0]=voltid then begin
+    try
+      for i:=0 to inlist.Count-1 do begin               {Read the settings file line by line}
+        s:=trim(inlist[i]);
+        if (s<>'') and (s[1]<>comment) then begin       {Skip comments}
+          if s[1]=ObjID1 then begin                     {Find sections}
+            idx:=notused;
+            objx:=trim(s.split([ObjID1, ObjID2])[1]);
+            if objx.Split([lzch])[0]=svx then           {Servos}
+              idx:=StrToIntDef(objx.Split([lzch])[1], 1);
+            if objx.Split([lzch])[0]=swx then           {Switches}
+              idx:=StrToIntDef(objx.Split([lzch])[1], 1)+6;
+          end else begin                                {Values with fix positions in array}
+            if s.Split([assgn])[0]=voltid then begin
+              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
+                sets[0, 0]:=w;
+              Continue;
+            end;
+            if s.Split([assgn])[0]=aux1 then begin
+              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
+                sets[0, 1]:=w;
+              Continue;
+            end;
+            if s.Split([assgn])[0]=aux2 then begin
+              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
+                sets[0, 2]:=w;
+              Continue;
+            end;
+            if s.Split([assgn])[0]=aux3 then begin
+              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
+                sets[0, 3]:=w;
+              Continue;
+            end;
+            if s.Split([assgn])[0]=aux4 then begin
+              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
+                sets[0, 4]:=w;
+              Continue;
+            end;
+            if s.Split([assgn])[0]=aux5 then begin
+              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
+                sets[0, 5]:=w;
+              Continue;
+            end;
+
+            if s.Split([assgn])[0]=actv then begin
+              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
+                sets[12, 1]:=w;
+              Continue;
+            end;
+            if s.Split([assgn])[0]=pwmcycle then begin
+              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
+                sets[12, 3]:=w;
+              Continue;
+            end;
+
+            if idx<13 then begin                        {Values assigned via index}
+              if s.Split([assgn])[0]=chnr then begin
                 if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[0, 0]:=w;
+                  sets[idx, 0]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=aux1 then begin
+              if s.Split([assgn])[0]=svmin then begin
                 if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[0, 1]:=w;
+                  sets[idx, 1]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=aux2 then begin
+              if s.Split([assgn])[0]=svntrl then begin
                 if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[0, 2]:=w;
+                  sets[idx, 2]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=aux3 then begin
+              if s.Split([assgn])[0]=svmax then begin
                 if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[0, 3]:=w;
+                  sets[idx, 3]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=aux4 then begin
+              if s.Split([assgn])[0]=pio then begin
                 if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[0, 4]:=w;
+                  sets[idx, 4]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=aux5 then begin
-                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[0, 5]:=w;
+              if s.Split([assgn])[0]=pwmrev then begin
+                if StrToBoolDef(trim(s.Split([assgn])[1]), false) then
+                  sets[idx, 5]:=1;
                 Continue;
               end;
 
-              if s.Split([assgn])[0]=actv then begin
+              if s.Split([assgn])[0]=swup then begin
                 if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[12, 1]:=w;
+                  sets[idx, 1]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=pwmcycle then begin
+              if s.Split([assgn])[0]=swmid then begin
                 if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[12, 3]:=w;
+                  sets[idx, 2]:=w;
                 Continue;
               end;
-
-              if idx<13 then begin                      {Values assigned via index}
-                if s.Split([assgn])[0]=chnr then begin
-                  if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                    sets[idx, 0]:=w;
-                  Continue;
-                end;
-                if s.Split([assgn])[0]=svmin then begin
-                  if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                    sets[idx, 1]:=w;
-                  Continue;
-                end;
-                if s.Split([assgn])[0]=svntrl then begin
-                  if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                    sets[idx, 2]:=w;
-                  Continue;
-                end;
-                if s.Split([assgn])[0]=svmax then begin
-                  if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                    sets[idx, 3]:=w;
-                  Continue;
-                end;
-                if s.Split([assgn])[0]=pio then begin
-                  if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                    sets[idx, 4]:=w;
-                  Continue;
-                end;
-                if s.Split([assgn])[0]=pwmrev then begin
-                  if StrToBoolDef(trim(s.Split([assgn])[1]), false) then
-                    sets[idx, 5]:=1;
-                  Continue;
-                end;
-
-                if s.Split([assgn])[0]=swup then begin
-                  if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                    sets[idx, 1]:=w;
-                  Continue;
-                end;
-                if s.Split([assgn])[0]=swmid then begin
-                  if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                    sets[idx, 2]:=w;
-                  Continue;
-                end;
-                if s.Split([assgn])[0]=swdown then begin
-                  if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                    sets[idx, 3]:=w;
-                  Continue;
-                end;
-                if s.Split([assgn])[0]=pio2 then begin
-                  if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                    sets[idx, 5]:=w;
-                end;
+              if s.Split([assgn])[0]=swdown then begin
+                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
+                  sets[idx, 3]:=w;
+                Continue;
+              end;
+              if s.Split([assgn])[0]=pio2 then begin
+                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
+                  sets[idx, 5]:=w;
               end;
             end;
           end;
         end;
-      finally
-        inlist.Free;
       end;
+    finally
+      inlist.Free;
     end;
   end;
 end;
@@ -402,7 +369,7 @@ end;
  Input:  Stick values between 683 and 3412 (+/- 100%), neutral is 2048
  Output: integer value between min and max in settings}
 
-function StkToPWM(sets: TSettings; Servo: byte;       {Analog stick position to PWM in ns}
+function StkToPWM(sets: TSettings; Servo: byte;         {Analog stick position to PWM in ns}
                   value: uint16): uint64;
 begin
   result:=value*1000;                                   {Output 1:1}
@@ -422,12 +389,14 @@ end;
 
 {Settings array [index, column]
  Columns for switches: 0..channel, 1..up, 2..middle, 3..down, 4..GPIOnr, 5..GPIOnr2
- Columns for servos: 0..channel, 1..min, 2..neutral, 3..max, 4..GPIOnr, 5..Revers}
+ Columns for servos:   0..channel, 1..min, 2..neutral, 3..max, 4..GPIOnr, 5..Revers
+ Column 12:            0..channel, 1..Red btn active, 2..GPIOnr, 3..PWMcycle, 4..n/a, 5..n/a}
 
-function SwitchPos(sets: TSettings; switch: byte;      {Position up..1, middle..2, down..3}
-                                    value: integer; defaultpos: byte = 2): byte;
+function SwitchPos(sets: TSettings; switch: byte;       {Position up..1, middle..2, down..3}
+                                    value: uint16; defaultpos: byte = 2): byte;
 var
   i, t: byte;
+  thr: uint16;
 
 begin
   result:=defaultpos;
@@ -441,10 +410,11 @@ begin
   end;
   if t=1 then begin                                     {Relax values from servos if sticks used as switches}
     result:=2;                                          {Default neutral, middle position}
-    if value>sets[switch, 2]+(sets[switch, 3] div 3) then
+    thr:=(sets[switch, 3]-sets[switch, 2]) div 3;
+    if value>sets[switch, 2]+thr then
       result:=1                                         {Stick position like switch up}
     else
-      if value<sets[switch, 2]-(sets[switch, 1] div 3) then
+      if value<sets[switch, 2]-thr then
         result:=3;                                      {Stick position like switch down}
   end;
 end;
@@ -452,7 +422,7 @@ end;
 {Get status of Start/stop button (the red one), active (true) means button pressed}
 
 function StartStop(sets: TSettings; channel: byte;
-                   value: integer): boolean;            {Start/stop active or not}
+                   value: uint16): boolean;             {Start/stop active or not}
 begin
   result:=false;                                        {Red button not pressed}
   if (channel=sets[12, stkmin]) and (value=sets[12, 1]) then
@@ -469,7 +439,7 @@ end;
 {Convert an integer value from A/D converter to Yuneec telemetry format
  using to correction factor in settings array [0, 0]}
 
-function VoltToTelemetry(sets: TSettings; volt: integer): byte;  {Voltage with correction factor}
+function VoltToTelemetry(sets: TSettings; volt: uint16): byte;  {Voltage with correction factor}
 var
   v: integer;
 

@@ -32,15 +32,10 @@ type
     btnToggle: TButton;
     btnGstop: TButton;
     btnLoadSettings: TButton;
-    lblPanConv: TLabel;
-    lblRollConv: TLabel;
-    lblPtchConv: TLabel;
-    lblThrConv: TLabel;
-    lblYawConv: TLabel;
+    lblThrVal: TLabel;
     lblPanMode: TLabel;
     lblRSSIval: TLabel;
     lblPanVal: TLabel;
-    lblThrVal: TLabel;
     lblYawVal: TLabel;
     lblRollVal: TLabel;
     lblPitchVal: TLabel;
@@ -574,7 +569,7 @@ begin
     if (g<notused) and (g>4) then
       ActivateGPIO(g);
     g:=csets[i, 5];
-    if (g<notused) and (g>4) then
+    if (g<notused) and (g>4) then                    {Will also activate GPIO ports for de-muxer}
       ActivateGPIO(g);
   end;
 end;
@@ -601,19 +596,21 @@ var
 begin
   for i:=1 to 11 do begin
     sw:=SwitchPos(csets, i, GetChValue(dat, csets[i, 0]));
-    pio:=csets[i, 4];                                {First GPIO port for op/middle position as on/off}
-    if (pio<notused) and (pio>4) then
+    pio:=csets[i, 4];                                {First GPIO port for upper position as ON}
+    if (pio<notused) and (pio>4) then begin
       if sw=1 then
         SetGPIO(pio, '1')
       else
         SetGPIO(pio, '0');
+    end;
 
     pio:=csets[i, 5];                                {For 3-way switches use second GPIO, port}
-    if (pio<notused) and (pio>4) then
-      if sw=3 then                                   {Low}
+    if (pio<notused) and (pio>4) then begin
+      if sw=3 then                                   {Switch in lower position as ON}
         SetGPIO(pio, '1')
       else
         SetGPIO(pio, '0');
+    end;
   end;
 end;
 
@@ -676,17 +673,17 @@ begin
         barRup.Position:=pitch-stkntrl;
         barRdown.Position:=stkntrl-pitch;
 
-        lblThrVal.Caption:=IntToStr(thr)+'='+IntToStr(StkToProz(thr))+'%';
-        lblThrConv.Caption:=IntToStr(StkToPWM(csets, 1, thr) div 1000);
+        lblThrVal.Caption:=IntToStr(StkToPWM(csets, 1, thr) div 1000)+
+                           '='+IntToStr(StkToProz(thr))+'%';
 
-        lblPitchVal.Caption:=IntToStr(pitch)+'='+IntToStr(StkToProz(pitch))+'%';
-        lblPtchConv.Caption:=IntToStr(StkToPWM(csets, 3, pitch) div 1000);
+        lblPitchVal.Caption:=IntToStr(StkToPWM(csets, 3, pitch) div 1000)+
+                           '='+IntToStr(StkToProz(pitch))+'%';
 
-        lblRollVal.Caption:=IntToStr(roll)+'='+IntToStr(StkToProz(roll))+'%';
-        lblRollConv.Caption:=IntToStr(StkToPWM(csets, 2, roll) div 1000);
+        lblRollVal.Caption:=IntToStr(StkToPWM(csets, 2, roll) div 1000)+
+                            '='+IntToStr(StkToProz(roll))+'%';
 
-        lblYawVal.Caption:=IntToStr(yaw)+'='+IntToStr(StkToProz(yaw))+'%';
-        lblYawConv.Caption:=IntToStr(StkToPWM(csets, 4, yaw) div 1000);
+        lblYawVal.Caption:=IntToStr(StkToPWM(csets, 4, yaw) div 1000)+
+                           '='+IntToStr(StkToProz(yaw))+'%';
 
         if thr=0 then begin                          {Mixed button -  start/stop}
           ledStop.State:=lsOn;
@@ -698,8 +695,8 @@ begin
         pbTilt.Position:=GetChValue(data, 7);        {Slider}
         pan:=GetChValue(data, 8);
         mPan.Position:=stkup-pan;                    {Knob}
-        lblPanVal.Caption:=IntToStr(pan)+'='+IntToStr(StkToProz(pan))+'%';
-        lblPanConv.Caption:=IntToStr(StkToPWM(csets, 6, pan) div 1000);
+        lblPanVal.Caption:=IntToStr(StkToPWM(csets, 6, pan) div 1000)+
+                           '='+IntToStr(StkToProz(pan))+'%';
 
         case rgServo.ItemIndex of
           1: begin    {Throttle + Pitch}
@@ -883,8 +880,6 @@ end;
 procedure TForm1.btnLoadSettingsClick(Sender: TObject);
 var
   fn: string;
-  testarr: TSettings;
-  li: TStringList;
 
 begin
   fn:=GetSettingsFile;
@@ -896,15 +891,6 @@ begin
     mmoSettings.Lines.LoadFromFile(fn);
     mmoSettings.Lines.SaveToFile(GetSettingsFile(true));   {Save a backup}
   end;
-
-  ReadSettings(testarr);      {Just to check if the correct values were found}
-  li:=TStringList.Create;
-  li.Add('# Read from Array');
-  li.Add('');
-  SettingsToText(testarr, li);
-  li.SaveToFile(ChangeFileExt(fn, '.arr'));
-  li.free;
-
 end;
 
 procedure TForm1.edFmodeChange(Sender: TObject);

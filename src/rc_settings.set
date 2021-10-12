@@ -64,7 +64,7 @@ Channel = 3
 Minimum = 900
 Neutral = 1500
 Maximum = 2100
-GPIOnum = 88
+GPIOnum = 1
 PWM reverse = False
 
 [Servo 4]
@@ -80,7 +80,7 @@ Channel = 7
 Minimum = 683
 Neutral = 2048
 Maximum = 3412
-GPIOnum = 88
+GPIOnum = 23
 PWM reverse = False
 
 [Servo 6]
@@ -88,7 +88,7 @@ Channel = 8
 Minimum = 1100
 Neutral = 1520
 Maximum = 1900
-GPIOnum = 1
+GPIOnum = 88
 PWM reverse = False
 
 [Switch 1]
@@ -112,7 +112,7 @@ Channel = 10
 Upper  position = 683
 Middle position = 1502
 Lower  position = 3412
-GPIOnum = 88
+GPIOnum = 6
 GPIOnum 2 = 88
 
 [Switch 4]
@@ -120,7 +120,7 @@ Channel = 11
 Upper  position = 4095
 Middle position = 4095
 Lower  position = 0
-GPIOnum = 23
+GPIOnum = 88
 GPIOnum 2 = 88
 
 [Switch 5]
