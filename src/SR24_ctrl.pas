@@ -6,10 +6,6 @@
  Basic GPIO control using the sysfs interface is slower than writing into memory
  but easier to program.
 
-
-
-
-
  PWM:
  https://github.com/raspberrypi/firmware/blob/master/boot/overlays/README
 
@@ -74,18 +70,18 @@ const
 type
   SysData=string[16];                                    {16 is maximum length to send a string}
 
-function WriteSysFile(filename: string; const value: SysData): boolean;
-function ExtractGPIOnr(gpn: string): byte;               {GPIO number from name}
-function PWMStatus: byte;                                {0: PWM not activated,
+function  WriteSysFile(filename: string; const value: SysData): boolean;
+function  ExtractGPIOnr(gpn: string): byte;              {GPIO number from name}
+function  PWMStatus: byte;                               {0: PWM not activated,
                                                           3: Channel 0,
-                                                          7: both 0 and 1 }
-function ActivatePWMChannel(GPIOnr: string): byte;       {results PWM status after activation}
+                                                          7: both 0 and 1 active}
+function  ActivatePWMChannel(GPIOnr: string): byte;      {results PWM status after activation}
 procedure DeactivatePWM;                                 {Deactivate all PWM channels}
 procedure DeactivateGPIO(GPIOnr: byte);                  {Deactivate and close GPIO pin}
 {Write data to PWM channel: PWM channel 0 or 1, PWM period in micro sec, cycle in ns, inversed-Default not}
 procedure SetPWMChannel(const PWMnr: byte; freq: uint32; cycle: uint64; revers: boolean = true);
 procedure SetPWMCycle(const PWMnr: byte; cycle: uint64); {Set duty cycle in ns}
-function ActivateGPIO(GPIOnr: byte): boolean;            {Open GPIO port as Out/Low as default}
+function  ActivateGPIO(GPIOnr: byte): boolean;           {Open GPIO port as Out/Low as default}
 procedure SetGPIO(GPIOnr: byte; Gbit: char = '0');       {Output on one GPIO out-pin}
 
 implementation

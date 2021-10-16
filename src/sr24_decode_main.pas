@@ -19,7 +19,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
-  ComCtrls, Spin, A3nalogGauge, MKnob, switches, AdvLed,
+  ComCtrls, Spin, MKnob, switches, AdvLed,
   SR24_dec, SR24_ctrl, SR24_chsets;
 
 type
@@ -27,15 +27,25 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
+    btnInternal: TButton;
     btnSaveSettings: TButton;
     btnPWM: TButton;
     btnToggle: TButton;
     btnGstop: TButton;
     btnLoadSettings: TButton;
+    Label17: TLabel;
+    Label18: TLabel;
+    lblAmp: TLabel;
+    lblYaw: TLabel;
+    lblRoll: TLabel;
+    lblPitch: TLabel;
+    lblFixType: TLabel;
     lblThrVal: TLabel;
     lblPanMode: TLabel;
     lblRSSIval: TLabel;
     lblPanVal: TLabel;
+    lblVy: TLabel;
+    lblVz: TLabel;
     lblYawVal: TLabel;
     lblRollVal: TLabel;
     lblPitchVal: TLabel;
@@ -65,8 +75,12 @@ type
     Memo1: TMemo;
     mmoSettings: TMemo;
     mPan: TmKnob;
-    rgServo: TRadioGroup;
     rgType: TRadioGroup;
+    spePitch: TFloatSpinEdit;
+    speRoll: TFloatSpinEdit;
+    speYaw: TFloatSpinEdit;
+    speVy: TFloatSpinEdit;
+    speVz: TFloatSpinEdit;
     swGear: TOnOffSwitch;
     pLeft: TPanel;
     pRight: TPanel;
@@ -84,17 +98,16 @@ type
     lblFmode: TLabel;
     Label6: TLabel;
     Label7: TLabel;
-    Label8: TLabel;
+    lblPCS: TLabel;
     Label9: TLabel;
     speVx: TFloatSpinEdit;
-    Label4: TLabel;
-    Label5: TLabel;
+    lblVolt: TLabel;
+    lblVx: TLabel;
     speSats: TSpinEdit;
     tsSettings: TTabSheet;
     tbGPIO: TTabSheet;
     tbMirror: TTabSheet;
     trbServo: TTrackBar;
-    Voltmeter: TA3nalogGauge;
     btnBind: TButton;
     btnStop: TButton;
     btnClose: TButton;
@@ -117,6 +130,7 @@ type
     procedure btnBindClick(Sender: TObject);
     procedure btnConnectClick(Sender: TObject);
     procedure btnGstopClick(Sender: TObject);
+    procedure btnInternalClick(Sender: TObject);
     procedure btnListenClick(Sender: TObject);
     procedure btnListenRawClick(Sender: TObject);
     procedure btnPWMClick(Sender: TObject);
@@ -129,7 +143,7 @@ type
     procedure btnLoadSettingsClick(Sender: TObject);
     procedure edFmodeChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure speVoltChange(Sender: TObject);
+    procedure speSatsChange(Sender: TObject);
     procedure tmBindTimer(Sender: TObject);
     procedure trbServoChange(Sender: TObject);
   private
@@ -155,10 +169,13 @@ var
 const
   csvheader='Date/Time;MsgType;Counter;?;RSSI[%];PackageCtnr;CH0;CH1;CH2;CH3;CH4;CH5;CH6;CH7;CH8;CH9;CH10;CH11;lat;lon;alt;acc;speed;angle;Num Sats';
   rsNoData='No data to read on UART';
+  rsFixType='Fix type';
+  rsFmode='Flight mode';
   sep=';';
   cff='0.000000';
   aff='0.0';
   tab1=' ';
+  dpkt=': ';
   capError='Error flags';
 
 implementation
@@ -205,6 +222,18 @@ begin
   end;
 end;
 
+function GPSfixType(const w: byte): string;        {MAVlink GPS fix type to string}
+begin
+  result:='';
+  case w of
+    0:	Result:='No GPS connected';
+    1:	Result:='No position information, GPS is connected';
+    2:	Result:='2D position';
+    3:	Result:='3D position';
+  end;
+end;
+
+
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   Caption:='Record SR24 data stream';
@@ -218,18 +247,23 @@ begin
   tmBind.Tag:=1;
   tmBind.Enabled:=false;
   SR24connected:=false;
-  Voltmeter.Position:=speVolt.Value;
-  lblFmode.Caption:=ModeLegacy(StrToIntDef(edFmode.Text, 16));
+  lblFmode.Caption:=rsFmode;
   cgErrorFlags.Caption:=capError;
   mPan.Position:=m50Val;                           {1365 = 50%}
   trbServo.Enabled:=false;
-  rgServo.Tag:=0;
   ReadSettings(csets);                             {Load common settings}
 end;
 
-procedure TForm1.speVoltChange(Sender: TObject);
+procedure TForm1.speSatsChange(Sender: TObject);
+var ft: byte;
+
 begin
-  Voltmeter.Position:=speVolt.Value;
+  ft:=speSats.Value and $FF;
+  speSats.Hint:=IntToStr(ft and $1F)+' sats';
+  if ft and $80>0 then
+    cbGPS.Checked:=true;                           {nsat, GPS used}
+  ft:=(ft shr 5) and 3;
+  lblFixType.Caption:=rsFixtype+dpkt+LineEnding+GPSfixType(ft);
 end;
 
 function MessageTypeToStr(mtp: byte):string;
@@ -446,18 +480,16 @@ begin
   IntToTelemetry(data, CoordToInt(StrToCoord(edLon.text)), 10, 4); {lon}
   IntToTelemetry(data, AltitudeToInt(speAlt.Value), 14, 4);        {Altitude m}
   IntToTelemetry(data, AltitudeToInt(speVx.Value), 18, 2);         {vx Speed m/s}
+  IntToTelemetry(data, AltitudeToInt(speVy.Value), 20, 2);         {vy Speed m/s}
+  IntToTelemetry(data, AltitudeToInt(speVz.Value), 22, 2);         {vz Speed m/s}
+  IntToTelemetry(data, AltitudeToInt(spePitch.Value), 27, 2);      {Pitch}
+  IntToTelemetry(data, AltitudeToInt(speRoll.Value), 29, 2);       {Roll}
+  IntToTelemetry(data, AltitudeToInt(speYaw.Value), 31, 2);        {Yaw}
   data[24]:=speSats.Value;
   if cbGPS.Checked then
     data[24]:=speSats.Value or $80;                  {nsat, GPS used}
   data[25]:=VoltToByte(speVolt.Value);               {voltage}
   data[26]:=CurrentToByte(speAmp.Value);             {current}
-
-  data[27]:=0;    {roll}
-  data[28]:=0;
-  data[29]:=0;    {pitch}
-  data[30]:=0;
-  data[31]:=0;    {yaw}
-  data[32]:=0;
 
   data[33]:=StrToIntDef(edMotor.Text, 255);          {Motorstatus}
   data[34]:=StrToIntDef(edIMU.Text, 97);             {IMU status}
@@ -466,7 +498,8 @@ begin
   data[37]:=rgType.ItemIndex+1;                      {Set vehicle type}
 
   data[38]:=Errorstatus;                             {error flags}
-  data[39]:=round(speGPS.Value*20) and $FF;          {GPSAccH}
+//  data[39]:=round(speGPS.Value*20) and $FF;          {GPSAccH}
+  data[39]:=round(speGPS.Value) and $FF;             {GPSAccH}
 
 end;
 
@@ -485,7 +518,7 @@ begin
   sr24Con;
   if UARTCanWrite then begin
     repeat
-      UpdateTelemetry(data);
+      UpdateTelemetry(data);                         {Counter}
       IntToTelemetry(data, z, 4, 2);
       SendTelemetry(data);
       Application.ProcessMessages;
@@ -638,14 +671,11 @@ begin
   alt:=0;
   ReadSettings(csets);                               {Load again common settings}
 
-  if rgServo.ItemIndex>0 then begin                  {Set up PWM channels}
+  btnClose.Enabled:=false;
+  ActivatePWMChannel('2');                           {Activate both}
+  if PWMstatus>1 then begin
     btnClose.Enabled:=false;
-    ActivatePWMChannel('2');                         {Activate both}
-    if PWMstatus>1 then begin
-      rgServo.Tag:=1;                                {PWM started}
-      btnClose.Enabled:=false;
-      InitServos;                                    {Set up PWM channels}
-    end;
+    InitServos;                                      {Set up PWM channels}
   end;
 
   sr24Con;
@@ -697,22 +727,7 @@ begin
         mPan.Position:=stkup-pan;                    {Knob}
         lblPanVal.Caption:=IntToStr(StkToPWM(csets, 6, pan) div 1000)+
                            '='+IntToStr(StkToProz(pan))+'%';
-
-        case rgServo.ItemIndex of
-          1: begin    {Throttle + Pitch}
-               SetPWMChannel(0, csets[12, 3], StkToPWM(csets, 1, thr), false);
-               SetPWMChannel(1, csets[12, 3], StkToPWM(csets, 3, pitch), false);
-             end;
-          2: begin    {Throttle + Pan}
-               SetPWMChannel(0, csets[12, 3], StkToPWM(csets, 1, thr), false);
-               SetPWMChannel(1, csets[12, 3], StkToPWM(csets, 6, pan), false);
-             end;
-          3: begin    {Pitch + Roll}
-               SetPWMChannel(0, csets[12, 3], StkToPWM(csets, 3, pitch), false);
-               SetPWMChannel(1, csets[12, 3], StkToPWM(csets, 2, roll), false);
-             end;
-          4: ControlServos(data);                    {Servo assignement from settings}
-        end;
+        ControlServos(data);                         {Servo assignement from settings}
         ControlSwitches(data);
         case GetChValue(data, 10) of                 {Example switch - Panmode}
           stkdown: lblPanMode.Caption:='Follow mode';
@@ -777,6 +792,24 @@ begin
   Memo1.Lines.Add('GPIO pin 23 deactivated');
 end;
 
+procedure TForm1.btnInternalClick(Sender: TObject);
+var
+  liste: TStringList;
+
+begin
+  liste:=TStringList.Create;
+  mmoSettings.Lines.Clear;
+  btnSaveSettings.Enabled:=false;
+  mmoSettings.Lines.Add('Current internal settings in use:');
+  mmoSettings.Lines.Add('');
+  try
+    SettingsToText(csets, liste);
+    mmoSettings.Lines.Assign(liste);
+  finally
+    liste.Free;
+  end;
+end;
+
 procedure TForm1.ListenRaw;
 var
   b: byte;
@@ -834,11 +867,8 @@ begin
   btnConnect.Enabled:=true;
   btnListenRaw.Enabled:=true;
   btnListen.Enabled:=true;
-  if rgServo.Tag>0 then begin                        {PWM channel were active}
-    DeactivatePWM;
-    btnClose.Enabled:=true;
-    rgServo.Tag:=0;
-  end;
+  DeactivatePWM;
+  btnClose.Enabled:=true;
   GPIOoff;
 end;
 
@@ -882,6 +912,7 @@ var
   fn: string;
 
 begin
+  btnSaveSettings.Enabled:=true;
   fn:=GetSettingsFile;
   if not FileExists(fn) then begin
     WriteDefaultsSettings;
@@ -895,7 +926,8 @@ end;
 
 procedure TForm1.edFmodeChange(Sender: TObject);
 begin
-  lblFmode.Caption:=ModeLegacy(StrToIntDef(edFmode.Text, 16));
+  lblFmode.Caption:=rsFmode+dpkt+LineEnding+
+                    ModeLegacy(StrToIntDef(edFmode.Text, 16));
 end;
 
 end.

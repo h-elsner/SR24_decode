@@ -69,33 +69,33 @@ type
 
 procedure ConnectUART(port: string; var UARTconnected: boolean);
 procedure DisconnectUART(var UARTconnected: boolean);   {Disconnect SR24}
-function UARTcanRead: boolean;                          {Check if ready to receive}
-function UARTcanWrite: boolean;                         {Check if ready to transmit}
-function UARTreadByte: byte;                            {receive one byte}
+function  UARTcanRead: boolean;                         {Check if ready to receive}
+function  UARTcanWrite: boolean;                        {Check if ready to transmit}
+function  UARTreadByte: byte;                           {receive one byte}
 procedure UARTwriteByte(b: byte);                       {send one byte}
-function UARTreadMsg(var data: TPayLoad): boolean;      {Read one message}
+function  UARTreadMsg(var data: TPayLoad): boolean;     {Read one message}
 procedure UARTsendMsg(data: TPayload);                  {Send one telemetry dataset}
 procedure SendBind;                                     {Send one binding message}
 
-function SR24_CRC8(data: TPayLoad; len: byte): byte;    {Create CRC8 checksum}
-function TestCRC8(data: TPayLoad; len: byte): boolean; inline;  {Check if dataset is valid}
+function  SR24_CRC8(data: TPayLoad; len: byte): byte;   {Create CRC8 checksum}
+function  TestCRC8(data: TPayLoad; len: byte): boolean; inline;  {Check if dataset is valid}
 
-function GetFloatFromBuf(data: TPayLoad; idx: byte): single;               {Get 4 byte float as single}
-function GetIntFromBuf(data: TPayLoad; idx, len: byte): integer;           {Get len bytes as integer big endian}
+function  GetFloatFromBuf(data: TPayLoad; idx: byte): single;              {Get 4 byte float as single}
+function  GetIntFromBuf(data: TPayLoad; idx, len: byte): integer;          {Get len bytes as integer big endian}
 procedure IntToTelemetry(var data: TPayload; w: integer; pos, len: byte);  {Convert integer to byte array}
-function GetChValue(data: TPayLoad; chnr: byte): uint16;                   {Get value from on Channel, channel no starts with 1}
-function CoordToFloat(coord: integer): single;                             {Convert integer cooerdinates to float}
-function GetGPSdata(data: TPayLoad; var lat, lon, alt: single): boolean;   {Get lat, lon and alt from GPS data}
+function  GetChValue(data: TPayLoad; chnr: byte): uint16;                  {Get value from on Channel, channel no starts with 1}
+function  CoordToFloat(coord: integer): single;                            {Convert integer cooerdinates to float}
+function  GetGPSdata(data: TPayLoad; var lat, lon, alt: single): boolean;  {Get lat, lon and alt from GPS data}
 
-function VoltToByte(v: single): byte;                   {Convert volt to byte}
-function CurrentToByte(a: single): byte;                {Convert ampere to byte}
-function CoordToInt(coord: single): int32;
-function AltitudeToInt(alt: single): int32;             {Convert Altitude, 4 byte}
-function SpeedToInt(alt: single): int16;                {Speed 2 byte}
-function GetNumSat(n: byte): byte;                      {Get number of sats from RC}
-function GetFixType(n: byte): byte;                     {Get GPS fix type}
-function GetGPSused(n: byte): boolean;                  {Get GPS used flag}
-function GetRSSI(data: TPayLoad): int16;                {Get receiver RSSI in %}
+function  VoltToByte(v: single): byte;                  {Convert volt to byte}
+function  CurrentToByte(a: single): byte;               {Convert ampere to byte}
+function  CoordToInt(coord: single): int32;             {Convert coordinates to integer represetation}
+function  AltitudeToInt(alt: single): int32;            {Convert Altitude, 4 byte}
+function  SpeedToInt(alt: single): int16;               {Speed 2 byte}
+function  GetNumSat(n: byte): byte;                     {Get number of sats from RC}
+function  GetFixType(n: byte): byte;                    {Get GPS fix type}
+function  GetGPSused(n: byte): boolean;                 {Get GPS used flag}
+function  GetRSSI(data: TPayLoad): int16;               {Get receiver RSSI in %}
 
 implementation
 
@@ -103,7 +103,7 @@ procedure ConnectUART(port: string; var UARTconnected: boolean);
 begin
   if not UARTconnected then begin                       {UART Tx, GPIO 14, pin 8}
     sr24ser:=TBlockSerial.Create;                       {UART Rx, GPIO 15, pin 10}
-    sr24ser.Connect(port);
+    sr24ser.Connect(port);                              {Port for Raspi: /dev/ttyAMA0}
     sr24ser.Config(115200, 8, 'N', 1, false, false);    {Config 115200 baud, 8N1}
     UARTConnected:=true;
   end;
@@ -121,7 +121,7 @@ begin
   end;
 end;
 
-function UARTcanRead: boolean;                          {Simple UART routines}
+function UARTcanRead: boolean;                          {Wrapper for simple UART routines}
 begin
   result:=sr24ser.CanRead(timeout);
 end;
@@ -185,7 +185,7 @@ begin
   sr24ser.SendByte(crc);
 end;
 
-procedure SendBind;                                     {Send one binding message}
+procedure SendBind;                                     {Send one BIND message}
 var
   i: integer;
 

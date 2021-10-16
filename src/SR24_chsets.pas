@@ -98,20 +98,20 @@ const
                                 {start/stop button: channel, active, GPIOnr and PWM cycle for all servos, n/a, n/a}
                                 (1, 0, notused, 20000, 0, 0));
 
-function GetSettingsFile(bak: boolean = false): string; {Get path and file name to settings}
-function GetControlType(idx: byte): byte;               {Check if servos (1) or switches (7)}
+function  GetSettingsFile(bak: boolean=false): string;  {Get path and file name to settings}
+function  GetControlType(idx: byte): byte;              {Check if servos (1) or switches (7)}
 procedure SettingsToText(const sets: TSettings; var liste: TStringlist);
 procedure WriteDefaultsSettings;                        {Array DefaultSetting into text file}
 procedure ReadSettings(var sets: TSettings);            {Fill settings array from file}
 
-function StkToPWM(sets: TSettings; servo: byte;         {Analog stick position to PWM in ns}
+function  StkToPWM(sets: TSettings; servo: byte;        {Analog stick position to PWM in ns}
                   value: uint16): uint64;
-function SwitchPos(sets: TSettings; switch: byte;       {Position up..1, middle..2, down..3}
-                   value: uint16; defaultpos: byte = 2): byte;
-function StartStop(sets: TSettings; channel: byte;
+function  SwitchPos(sets: TSettings; switch: byte;      {Position up..1, middle..2, down..3}
+                   value: uint16; defaultpos: byte=2): byte;
+function  StartStop(sets: TSettings; channel: byte;
                    value: uint16): boolean;             {Start/stop active or not}
-function StkToProz(const w: uint16): int16;             {Stick Position to percent}
-function VoltToTelemetry(sets: TSettings;               {Voltage to Yuneec format with correction factor}
+function  StkToProz(const w: uint16): int16;            {Stick Position to percent}
+function  VoltToTelemetry(sets: TSettings;              {Voltage to Yuneec format with correction factor}
                          volt: uint16): byte;
 
 implementation
@@ -134,7 +134,7 @@ begin
   end;
 end;
 
-function GetSettingsFile(bak: boolean = false): string; {Get path and file name to settings file}
+function GetSettingsFile(bak: boolean=false): string;   {Get path and file name to settings file}
 begin
   result:=ExtractFilePath(paramstr(0))+filename_settings;
   if bak then
