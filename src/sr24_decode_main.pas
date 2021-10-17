@@ -279,11 +279,12 @@ function MessageTypeToStr(mtp: byte):string;
 begin
   result:='Unknown '+IntToStr(mtp);
   case mtp of
-    0: result:='Data12Ch';
-    1: result:='Data24Ch';
-    2: result:='Telemetry';
-    3: result:='GPS data';
-    4: Result:='Bind mode';
+    0:  result:='Data12Ch';
+    1:  result:='Data24Ch';
+    2:  result:='Telemetry';
+    3:  result:='GPS data';
+    4:  result:='Bind mode';
+    20: result:='OBS switch';
   end;
 end;
 
