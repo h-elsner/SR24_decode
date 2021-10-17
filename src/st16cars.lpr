@@ -44,6 +44,21 @@ begin
   end;
 end;
 
+procedure GPIOoff;                                   {Switch off all used GPIO ports}
+var
+  i, g: byte;
+
+begin
+  for i:=1 to 11 do begin
+    g:=csets[i, 4];
+    if (g<notused) and (g>4) then
+      DeActivateGPIO(g);
+    g:=csets[i, 5];
+    if (g<notused) and (g>4) then
+      DeActivateGPIO(g);
+  end;
+end;
+
 procedure InitServos;                                {Initialize Servos. Only two can get HW PWM channels 0 or 1}
 var
   i, pio: byte;
@@ -98,7 +113,6 @@ end;
 
 procedure st16car1.DoRun;
 var
-  exitch: char;
   data, tele: TPayLoad;
   i, z, ExitStatus: byte;
   tlz, gps: uint16;
@@ -127,14 +141,13 @@ begin
       if UARTCanRead then begin
 
         repeat
-          exitch:=ReadKey;
           if UARTreadMsg(data) then begin
             ControlServos(data);                         {Servo assignement from settings}
             ControlSwitches(data);
             inc(z);
 
 // This is just to show GPS data from the ST16 on the ST16
-//   where usually the data from the drone are seen.
+//  where usually the data from the drone are seen.
 // This could be removed or commented out
             if data[3]=3 then begin                      {Message type GPS data set}
               for i:=0 to 7 do
@@ -163,10 +176,9 @@ begin
 //          if z>10 then
 //            UARTsendMsg(tele);      {Send default telemetry to avoid error messages on ST16}
 
-
           end else
             ExitStatus:=4;      // no valid message
-        until exitch=#27;       // stop program loop on ESC
+        until KeyPressed;       // stop program at any key
 
       end else
         exitstatus:=3;          // cannot read
@@ -174,8 +186,10 @@ begin
       exitstatus:=2;            // not connected
   end else
     exitstatus:=1;              // no PWM channels
+  DeactivatePWM;
+  GPIOoff;
   DisconnectUART(SR24connected);
-  write(ExitStatus);
+  writeln(ExitStatus);
   Terminate;
 end;
 
