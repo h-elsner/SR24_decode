@@ -33,7 +33,7 @@ unit SR24_chsets;
 interface
 
 uses
-  sysutils, classes, FileUtil;
+  sysutils, classes;
 
 type
   TSettings = array[0..12, 0..5] of uint16;             {Channel settings array: servos, values}
@@ -207,8 +207,6 @@ var
 
 begin
   fn:=GetSettingsFile;
-  if FileExists(fn) then
-    CopyFile(fn, ChangeFileExt(fn, '.bak'));
   liste:=TStringList.Create;
   try
     liste.Add('# Default settings created at '+

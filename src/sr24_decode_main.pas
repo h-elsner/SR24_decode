@@ -33,6 +33,8 @@ type
     btnToggle: TButton;
     btnGstop: TButton;
     btnLoadSettings: TButton;
+    cgIMU: TCheckGroup;
+    cgPCS: TCheckGroup;
     Label17: TLabel;
     Label18: TLabel;
     lblAmp: TLabel;
@@ -97,9 +99,9 @@ type
     speGPS: TFloatSpinEdit;
     lblFmode: TLabel;
     Label6: TLabel;
-    Label7: TLabel;
+    lblMot: TLabel;
     lblPCS: TLabel;
-    Label9: TLabel;
+    lblIMU: TLabel;
     speVx: TFloatSpinEdit;
     lblVolt: TLabel;
     lblVx: TLabel;
@@ -141,7 +143,12 @@ type
     procedure btnCloseClick(Sender: TObject);
     procedure btnToggleClick(Sender: TObject);
     procedure btnLoadSettingsClick(Sender: TObject);
+    procedure cgIMUClick(Sender: TObject);
+    procedure cgPCSClick(Sender: TObject);
     procedure edFmodeChange(Sender: TObject);
+    procedure edIMUChange(Sender: TObject);
+    procedure edMotorChange(Sender: TObject);
+    procedure edPCSChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure speSatsChange(Sender: TObject);
     procedure tmBindTimer(Sender: TObject);
@@ -171,6 +178,9 @@ const
   rsNoData='No data to read on UART';
   rsFixType='Fix type';
   rsFmode='Flight mode';
+  rsIMU='IMU status';
+  rsPCS='Press/Comp status';
+  rsMot='Motor status';
   sep=';';
   cff='0.000000';
   aff='0.0';
@@ -222,7 +232,7 @@ begin
   end;
 end;
 
-function GPSfixType(const w: byte): string;        {MAVlink GPS fix type to string}
+function GPSfixType(const w: byte): string;        {MAVlink like GPS fix type to string}
 begin
   result:='';
   case w of
@@ -262,8 +272,7 @@ begin
   speSats.Hint:=IntToStr(ft and $1F)+' sats';
   if ft and $80>0 then
     cbGPS.Checked:=true;                           {nsat, GPS used}
-  ft:=(ft shr 5) and 3;
-  lblFixType.Caption:=rsFixtype+dpkt+LineEnding+GPSfixType(ft);
+  lblFixType.Caption:=rsFixtype+dpkt+LineEnding+GPSfixType(GetFixType(ft));
 end;
 
 function MessageTypeToStr(mtp: byte):string;
@@ -281,7 +290,7 @@ end;
 
 function RawData(data: TPayLoad; len: byte): string;
 var
-  i: integer;
+  i: byte;
 begin
   result:='';
   for i:=0 to len do
@@ -290,19 +299,13 @@ end;
 
 function ChannelValues(data: TPayLoad; numch: byte): string;
 var
-  i: integer;
+  i: byte;
 
 begin
   result:='';
   for i:=1 to numch do begin
     result:=result+IntToStr(GetChValue(data, i))+sep;
   end;
-end;
-
-procedure TForm1.WriteProtocol(s: string);        {Catch output}
-begin
-  if pcTests.ActivePage=tbRaw then
-    mmoProtocol.Lines.Add(s);
 end;
 
 {Data structure from ChannelDataForward.java}
@@ -321,6 +324,23 @@ begin
             FormatFloat(aff, GetIntFromBuf(data, 40, 2)/100)+sep+    {speed}
             FormatFloat(aff, GetIntFromBuf(data, 42, 2)/100)+sep+    {angle}
             IntToStr(GetNumSat(data[44]));                           {Num sats}
+end;
+
+function Payld(data: TPayLoad): string;
+var
+  i: byte;
+
+begin
+  result:=FormatDateTime('yyyy-mm-dd hh:nn:ss:zzz', now)+sep+{Create timestamp}
+          MessageTypeToStr(data[3]);                 {Message type}
+  for i:=4 to data[2]+2 do
+    result:=result+sep+HexStr(data[i], 2);
+end;
+
+procedure TForm1.WriteProtocol(s: string);           {Catch output}
+begin
+  if pcTests.ActivePage=tbRaw then
+    mmoProtocol.Lines.Add(s);
 end;
 
 procedure TForm1.sr24Con;                            {Added color indication}
@@ -362,18 +382,19 @@ begin
   if result then begin
     if (cbGPSonly.Checked and (mtp=3)) or
        (not cbGPSonly.Checked) then begin
-      s:=FormatDateTime('yyyy-mm-dd hh:nn:ss:zzz', now)+sep; {Create timestamp}
-      s:=s+MessageTypeToStr(mtp)+sep;                {Message type}
-      s:=s+IntToStr(data[4])+sep;                    {Message counter from SR24, not used?}
-      s:=s+HexStr(data[5], 2)+sep;
-      s:=s+IntToStr(GetRSSI(data))+sep;              {RSSI in %}
-      s:=s+IntToStr(data[7])+sep;                    {Number of UART packets sent since reception of last RF frame (this tells something about age / rate)}
+      s:=FormatDateTime('yyyy-mm-dd hh:nn:ss:zzz', now)+sep+ {Create timestamp}
+         MessageTypeToStr(mtp)+sep+                  {Message type}
+         IntToStr(data[4])+sep+                      {Message counter from SR24, not used?}
+         HexStr(data[5], 2)+sep+
+         IntToStr(GetRSSI(data))+sep+                {RSSI in %}
+         IntToStr(data[7])+sep;                      {Number of UART packets sent since reception of last RF frame (this tells something about age / rate)}
       case mtp of
         0: s:=s+ChannelValues(data, 12);             {12 channels à 12 bit}
         1: s:=s+ChannelValues(data, 24);             {24 channels à 12 bit}
         3: s:=s+GPSdata(data);
+        20: s:=Payld(data);
       else
-        s:=RawData(data, len+3);                     {Other unknown messages as hex stream}
+        s:=RawData(data, len+2);                     {Other unknown messages as hex stream}
       end;
       WriteProtocol(s);                              {CSV output}
       mmoProtocol.SelStart:=length(mmoProtocol.Text);
@@ -460,17 +481,35 @@ begin
   end;
 end;
 
-function TForm1.ErrorStatus: byte;                   {Creates error flags}
-var i, e: byte;
+procedure SetBit(cg: TCheckGroup; bl: byte);         {Read Checkgroup items}
+var
+  i, e: byte;
+
+begin
+  e:=1;
+  for i:=0 to 7 do begin
+    cg.Checked[i]:=((bl and e)>0);
+    e:=e shl 1;
+  end;
+end;
+
+function BitSet(cg: TCheckGroup): byte;              {Set CheckGroup items}
+var
+  i, e: byte;
 
 begin
   result:=0;
   e:=1;
   for i:=0 to 7 do begin
-    if cgErrorFlags.Checked[i] then
-      result:=result or e;
-    e:=e shl 1;
+      if cg.Checked[i] then
+        result:=result or e;
+      e:=e shl 1;
   end;
+end;
+
+function TForm1.ErrorStatus: byte;                   {Creates error flags}
+begin
+  result:=BitSet(cgErrorFlags);
   cgErrorFlags.Caption:=capError+tab1+BinStr(result, 8);
 end;
 
@@ -515,6 +554,8 @@ begin
   z:=0;
   for i:=0 to 39 do
     data[i]:=DefTelemetry[i];                        {Set to default}
+  SetBit(cgIMU, 97);
+  SetBit(cgPCS, 85);
   sr24Con;
   if UARTCanWrite then begin
     repeat
@@ -775,6 +816,8 @@ begin
         Application.ProcessMessages;
       end;
     until btnStop.Tag>0;                              {Listen until Stop}
+{Console: repeat ch:=ReadKey; until ch=#27; (ESC) }
+
   end else
     lblStatus.Caption:=rsNoData;
   sr24Discon;
@@ -924,10 +967,38 @@ begin
   end;
 end;
 
+procedure TForm1.cgIMUClick(Sender: TObject);
+begin
+  edIMU.Text:=IntToStr(BitSet(cgIMU));
+end;
+
+procedure TForm1.cgPCSClick(Sender: TObject);
+begin
+  edPCS.Text:=IntToStr(BitSet(cgPCS));
+end;
+
 procedure TForm1.edFmodeChange(Sender: TObject);
 begin
   lblFmode.Caption:=rsFmode+dpkt+LineEnding+
                     ModeLegacy(StrToIntDef(edFmode.Text, 16));
+end;
+
+procedure TForm1.edIMUChange(Sender: TObject);
+begin
+  lblIMU.Caption:=rsIMU+dpkt+LineEnding+
+                  BinStr(StrToIntDef(edIMU.Text, 0), 8);
+end;
+
+procedure TForm1.edMotorChange(Sender: TObject);
+begin
+  lblMot.Caption:=rsMot+dpkt+LineEnding+
+                  BinStr(StrToIntDef(edMotor.Text, 0), 8);
+end;
+
+procedure TForm1.edPCSChange(Sender: TObject);
+begin
+  lblPCS.Caption:=rsPCS+dpkt+LineEnding+
+                  BinStr(StrToIntDef(edPCS.Text, 0), 8);
 end;
 
 end.

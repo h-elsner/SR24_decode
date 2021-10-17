@@ -56,7 +56,7 @@ const
                 0, 0, 0, 0, 0, 0,                       {18: vx, vy, vz }
                 0, 110, 0,                              {24: nsat, voltage (16V), current}
                 0, 0, 0, 0, 0, 0,                       {27: roll, pitch, yaw }
-	        255, 97, 85,                            {33: motor status, IMU status, Preessure compass}
+	        63, 97, 85,                             {33: motor status, IMU status, Preessure compass}
 	        16, 5, 0, 40);                          {36: flight mode, vehicle type, error flags, gps_AccH}
 
 
@@ -161,7 +161,7 @@ begin
       data[0]:=buf[2];                                  {Copy header and length to message data}
       data[1]:=buf[1];
       data[2]:=buf[0];
-      for i:=3 to buf[0]+3 do                           {Read the other bytes of the dataset (payload + CRC)}
+      for i:=3 to buf[0]+2 do                           {Read the other bytes of the dataset (payload + CRC)}
         data[i]:=sr24ser.RecvByte(timeout);
       z:=0;
       result:=true;
@@ -331,7 +331,7 @@ end;
 
 function GetNumSat(n: byte): byte;                      {Number of satellites}
 begin
-  result:=n and $1F;
+  result:=(n and $1F);
 end;
 
 function GetFixType(n: byte): byte;                     {FixType in nsat}
