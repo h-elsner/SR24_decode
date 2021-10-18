@@ -120,7 +120,7 @@ var
   alt: single;
 
 begin
-  exitStatus:=0;
+  exitStatus:=0;                                     {Exit no faults}
   z:=0;
   tlz:=0;
   alt:=0;
@@ -136,39 +136,50 @@ begin
     ReadSettings(csets);                             {Load common settings}
     InitServos;                                      {Set up PWM channels}
     GPIOon;
-    ConnectUART(uartport, SR24connected);
+    ConnectUART(uartport, 115200, SR24connected);
     if SR24connected then begin
-      if UARTCanRead then begin
 
+      if not UARTCanRead then begin                  {Wait for RC}
+        tele[36]:=17;
+        repeat
+          sleep(timeout);
+        until UARTCanRead or KeyPressed;
+      end;
+
+      if UARTCanRead then begin
+        tele[36]:=16;
         repeat
           if UARTreadMsg(data) then begin
-            ControlServos(data);                         {Servo assignement from settings}
+            ControlServos(data);                     {Servo assignement from settings}
             ControlSwitches(data);
             inc(z);
 
 // This is just to show GPS data from the ST16 on the ST16
-//  where usually the data from the drone are seen.
+// where usually the data from the drone are seen (Mirroring).
 // This could be removed or commented out
-            if data[3]=3 then begin                      {Message type GPS data set}
+            if data[3]=3 then begin                  {Message type GPS data set}
               for i:=0 to 7 do
-                coord[i]:=data[26+i];                    {Store coordinates}
-              alt:=GetFloatFromBuf(data, 34);            {Store altitude}
+                coord[i]:=data[26+i];                {Store coordinates}
+              alt:=GetFloatFromBuf(data, 34);        {Store altitude}
             end;
-            if z>=5 then begin                           {One telemetry per 5 received packages}
+            if z>=5 then begin                       {One telemetry per 5 received packages}
               gps:=0;
-              IntToTelemetry(data, tlz, 4, 2);           {Counter}
+              IntToTelemetry(data, tlz, 4, 2);       {Counter}
               for i:=0 to 7 do begin
-                tele[i+6]:=coord[i];                     {Mirror coordinates}
-                gps:=gps+Coord[i];                       {Check controller GPS if something >0 is there}
+                tele[i+6]:=coord[i];                 {Mirror coordinates}
+                gps:=gps+Coord[i];                   {Check controller GPS if something >0 is there}
               end;
               IntToTelemetry(tele, AltitudeToInt(alt), 14, 4);  {Mirror Altitude m}
-              i:=data[44];                               {nsat}
-              if gps>0 then
-                i:=i or $80;                             {GPS aquired}
-              tele[24]:=i;                               {nsat + GPS used}
+              i:=data[44];                           {nsat}
+              tele[36]:=4;
+              if gps>0 then begin
+                i:=i or $80;                         {GPS of RC aquired}
+                tele[36]:=3;
+              end;
+              tele[24]:=i;                           {nsat + GPS used}
               UARTsendMsg(tele);
-              z:=0;                                      {Reset counter}
-              inc(tlz);                                  {Counter for sent packages}
+              z:=0;                                  {Reset counter}
+              inc(tlz);                              {Counter for sent packages}
               if tlz>=65535 then
                 tlz:=0;
             end;
@@ -177,15 +188,15 @@ begin
 //            UARTsendMsg(tele);      {Send default telemetry to avoid error messages on ST16}
 
           end else
-            ExitStatus:=4;      // no valid message
-        until KeyPressed;       // stop program at any key
+            ExitStatus:=4;                           {no valid message}
+        until KeyPressed;                            {stop program at any key}
 
       end else
-        exitstatus:=3;          // cannot read
+        exitstatus:=3;                               {Cannot read}
     end else
-      exitstatus:=2;            // not connected
+      exitstatus:=2;                                 {not connected}
   end else
-    exitstatus:=1;              // no PWM channels
+    exitstatus:=1;                                   {no PWM channels}
   DeactivatePWM;
   GPIOoff;
   DisconnectUART(SR24connected);

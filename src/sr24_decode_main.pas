@@ -27,17 +27,17 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
-    btnInternal: TButton;
+    btnBind: TButton;
+    btnLoadDefault: TButton;
     btnSaveSettings: TButton;
-    btnPWM: TButton;
-    btnToggle: TButton;
-    btnGstop: TButton;
     btnLoadSettings: TButton;
+    cbxUARTspeed: TComboBox;
     cgIMU: TCheckGroup;
     cgPCS: TCheckGroup;
     Label17: TLabel;
-    Label18: TLabel;
+    Label4: TLabel;
     lblAmp: TLabel;
+    lblStatus1: TLabel;
     lblYaw: TLabel;
     lblRoll: TLabel;
     lblPitch: TLabel;
@@ -57,7 +57,6 @@ type
     btnListenRaw: TButton;
     btnSave: TButton;
     btnSend: TButton;
-    btnSend1: TButton;
     cbGPSonly: TCheckBox;
     cgErrorFlags: TCheckGroup;
     cbGPS: TCheckBox;
@@ -74,7 +73,6 @@ type
     Label16: TLabel;
     lblStatus: TLabel;
     ledStop: TAdvLed;
-    Memo1: TMemo;
     mmoSettings: TMemo;
     mPan: TmKnob;
     rgType: TRadioGroup;
@@ -107,10 +105,7 @@ type
     lblVx: TLabel;
     speSats: TSpinEdit;
     tsSettings: TTabSheet;
-    tbGPIO: TTabSheet;
     tbMirror: TTabSheet;
-    trbServo: TTrackBar;
-    btnBind: TButton;
     btnStop: TButton;
     btnClose: TButton;
     cbxUARTname: TComboBox;
@@ -131,17 +126,13 @@ type
     tmBind: TTimer;
     procedure btnBindClick(Sender: TObject);
     procedure btnConnectClick(Sender: TObject);
-    procedure btnGstopClick(Sender: TObject);
-    procedure btnInternalClick(Sender: TObject);
     procedure btnListenClick(Sender: TObject);
     procedure btnListenRawClick(Sender: TObject);
-    procedure btnPWMClick(Sender: TObject);
     procedure btnSaveSettingsClick(Sender: TObject);
     procedure btnSendClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
-    procedure btnToggleClick(Sender: TObject);
     procedure btnLoadSettingsClick(Sender: TObject);
     procedure cgIMUClick(Sender: TObject);
     procedure cgPCSClick(Sender: TObject);
@@ -152,7 +143,6 @@ type
     procedure FormCreate(Sender: TObject);
     procedure speSatsChange(Sender: TObject);
     procedure tmBindTimer(Sender: TObject);
-    procedure trbServoChange(Sender: TObject);
   private
     function ErrorStatus: byte;
     procedure Sendtest(data: TPayload);
@@ -181,6 +171,8 @@ const
   rsIMU='IMU status';
   rsPCS='Press/Comp status';
   rsMot='Motor status';
+  rsConnected='Connected';
+  rsDisconnected='Disconnected';
   sep=';';
   cff='0.000000';
   aff='0.0';
@@ -251,7 +243,6 @@ begin
   mmoProtocol.Font.Name:='Liberation Mono';
   mmoSettings.Clear;
   mmoSettings.Font.Name:='Liberation Mono';
-  Memo1.Lines.Clear;
   btnStop.Tag:=0;
   btnListen.Tag:=1;
   tmBind.Tag:=1;
@@ -260,8 +251,9 @@ begin
   lblFmode.Caption:=rsFmode;
   cgErrorFlags.Caption:=capError;
   mPan.Position:=m50Val;                           {1365 = 50%}
-  trbServo.Enabled:=false;
   ReadSettings(csets);                             {Load common settings}
+  lblStatus.Caption:=rsDisconnected;
+  lblStatus1.Caption:=rsDisconnected;
 end;
 
 procedure TForm1.speSatsChange(Sender: TObject);
@@ -345,8 +337,15 @@ begin
 end;
 
 procedure TForm1.sr24Con;                            {Added color indication}
+var
+  bps: uint32;
+
 begin
-  ConnectUART(trim(cbxUARTname.Text), SR24connected);
+  case cbxUARTspeed.ItemIndex of
+    0: bps:=115200;
+    1: bps:=230400;
+  end;
+  ConnectUART(trim(cbxUARTname.Text), bps, SR24connected);
   if SR24connected then
     cbxUartname.Color:=clGradientActiveCaption;
   btnClose.Enabled:=false;
@@ -434,39 +433,9 @@ begin
     btnListen.Tag:=1;
 end;
 
-procedure TForm1.btnPWMClick(Sender: TObject);
-var
-  status: byte;
-
-begin
-  btnClose.Enabled:=false;
-  status:=PWMstatus;
-  Memo1.Lines.Add('PWM status: '+IntToStr(status));
-  if status=0 then begin
-    Memo1.Lines.Add('Hardware PWM not activated.');
-    Memo1.Lines.Add('Add "dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4" to /boot/config.txt.');
-  end else begin
-    Memo1.Lines.Add('Activate PWM...');
-    ActivatePWMChannel('2');                         {Activate both}
-    status:=PWMstatus;
-    Memo1.Lines.Add('PWM status now:  '+IntToStr(status));
-    if status>1 then begin
-      Memo1.Lines.Add('Set PWM freqency to '+FormatFloat('0.000', 1000/csets[12, 3])+'kHz');
-      SetPWMChannel(0, csets[12, 3], trbServo.Position*1000, false);
-      SetPWMChannel(1, csets[12, 3], csets[1, 2]*1000, false);             {in ns}
-      trbServo.Enabled:=true;
-    end;
-  end;
-end;
-
 procedure TForm1.btnSaveSettingsClick(Sender: TObject);
 begin
   mmoSettings.Lines.SaveToFile(GetSettingsFile);
-end;
-
-procedure TForm1.trbServoChange(Sender: TObject);
-begin
-  setPWMCycle(0, trbServo.Position*1000);            {in nano seconds}
 end;
 
 function StrToCoord(coord: string): single;
@@ -541,36 +510,6 @@ begin
 //  data[39]:=round(speGPS.Value*20) and $FF;          {GPSAccH}
   data[39]:=round(speGPS.Value) and $FF;             {GPSAccH}
 
-end;
-
-procedure TForm1.btnSendClick(Sender: TObject);      {Button send}
-var
-  data: TPayLoad;
-  i, z: integer;
-
-begin
-  btnStop.Enabled:=true;
-  btnStop.Tag:=0;
-  mmoProtocol.Lines.Clear;
-  z:=0;
-  for i:=0 to 39 do
-    data[i]:=DefTelemetry[i];                        {Set to default}
-  SetBit(cgIMU, 97);
-  SetBit(cgPCS, 85);
-  sr24Con;
-  if UARTCanWrite then begin
-    repeat
-      UpdateTelemetry(data);                         {Counter}
-      IntToTelemetry(data, z, 4, 2);
-      SendTelemetry(data);
-      Application.ProcessMessages;
-      inc(z);
-      if z>=65535 then
-        z:=0;
-    until (btnStop.Tag>0);
-  end else
-    WriteProtocol('No connection');
-  sr24Discon;
 end;
 
 procedure TForm1.SendTest(data: TPayload);
@@ -723,7 +662,7 @@ begin
   sr24Con;
   if UARTCanRead then begin
     GPIOon;
-    lblStatus.Caption:='Connected';
+    lblStatus.Caption:=rsConnected;
     repeat
       if UARTreadMsg(data) then begin
         if data[3]=3 then begin                      {GPS data set}
@@ -824,34 +763,35 @@ begin
   sr24Discon;
 end;
 
-procedure TForm1.btnGstopClick(Sender: TObject);
-begin
-  trbServo.Enabled:=false;
-  DeactivatePWM;
-  Memo1.Lines.Add('PWM status deactivated: '+inttostr(PWMstatus));
-  btnClose.Enabled:=true;
-  btnToggle.Tag:=1;
-  btnClose.Enabled:=true;
-  DeactivateGPIO(23);
-  Memo1.Lines.Add('GPIO pin 23 deactivated');
-end;
-
-procedure TForm1.btnInternalClick(Sender: TObject);
+procedure TForm1.btnSendClick(Sender: TObject);      {Button send}
 var
-  liste: TStringList;
+  data: TPayLoad;
+  i, z: integer;
 
 begin
-  liste:=TStringList.Create;
-  mmoSettings.Lines.Clear;
-  btnSaveSettings.Enabled:=false;
-  mmoSettings.Lines.Add('Current internal settings in use:');
-  mmoSettings.Lines.Add('');
-  try
-    SettingsToText(csets, liste);
-    mmoSettings.Lines.Assign(liste);
-  finally
-    liste.Free;
-  end;
+  btnStop.Enabled:=true;
+  btnStop.Tag:=0;
+  mmoProtocol.Lines.Clear;
+  z:=0;
+  for i:=0 to 39 do
+    data[i]:=DefTelemetry[i];                        {Set to default}
+  SetBit(cgIMU, StrToIntDef(edIMU.Text, 97));
+  SetBit(cgPCS, StrToIntDef(edPCS.Text, 85));
+  sr24Con;
+  if UARTCanWrite then begin
+    lblStatus1.Caption:=rsConnected;
+    repeat
+      UpdateTelemetry(data);                         {Counter}
+      IntToTelemetry(data, z, 4, 2);
+      SendTelemetry(data);
+      Application.ProcessMessages;
+      inc(z);
+      if z>=65535 then
+        z:=0;
+    until (btnStop.Tag>0);
+  end else
+    WriteProtocol('No connection');
+  sr24Discon;
 end;
 
 procedure TForm1.ListenRaw;
@@ -908,12 +848,15 @@ begin
   btnStop.Tag:=1;
   btnStop.Enabled:=false;
   btnBind.Enabled:=true;
+  btnClose.Enabled:=true;
   btnConnect.Enabled:=true;
   btnListenRaw.Enabled:=true;
   btnListen.Enabled:=true;
   DeactivatePWM;
   btnClose.Enabled:=true;
   GPIOoff;
+  lblStatus.Caption:=rsDisconnected;
+  lblStatus1.Caption:=rsDisconnected;
 end;
 
 procedure TForm1.btnSaveClick(Sender: TObject);      {Save}
@@ -930,25 +873,6 @@ begin
   tmBind.Enabled:=false;
   btnStop.Tag:=1;
   Close;
-end;
-
-procedure TForm1.btnToggleClick(Sender: TObject);    {Toggle GPIO23 as fast as possible}
-var
-  g: byte;
-
-begin
-  btnToggle.Tag:=0;
-  btnClose.Enabled:=false;
-  g:=23;
-  Memo1.Lines.Add(pathGPIO+fSysStart);
-  if ActivateGPIO(g) then begin
-    Memo1.Lines.Add(pathGPIO+fgpio+IntToStr(g)+fValue);
-    repeat
-      SetGPIO(g, '1');
-      SetGPIO(g);
-      Application.ProcessMessages;
-    until btnToggle.Tag=1;                           {Results in ~ 10kHz with some gaps}
-  end;
 end;
 
 procedure TForm1.btnLoadSettingsClick(Sender: TObject);
