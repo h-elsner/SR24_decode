@@ -67,7 +67,7 @@ type
   TPayLoad = array[0..maxlen] of byte;                  {Message array}
 
 
-procedure ConnectUART(port: string; var UARTconnected: boolean);
+procedure ConnectUART(port: string; speed: uint32; var UARTconnected: boolean);
 procedure DisconnectUART(var UARTconnected: boolean);   {Disconnect SR24}
 function  UARTcanRead: boolean;                         {Check if ready to receive}
 function  UARTcanWrite: boolean;                        {Check if ready to transmit}
@@ -99,12 +99,12 @@ function  GetRSSI(data: TPayLoad): int16;               {Get receiver RSSI in %}
 
 implementation
 
-procedure ConnectUART(port: string; var UARTconnected: boolean);
+procedure ConnectUART(port: string; speed: uint32; var UARTconnected: boolean);
 begin
   if not UARTconnected then begin                       {UART Tx, GPIO 14, pin 8}
     sr24ser:=TBlockSerial.Create;                       {UART Rx, GPIO 15, pin 10}
     sr24ser.Connect(port);                              {Port for Raspi: /dev/ttyAMA0}
-    sr24ser.Config(115200, 8, 'N', 1, false, false);    {Config 115200 baud, 8N1}
+    sr24ser.Config(speed, 8, 'N', 1, false, false);     {Config default 115200 baud, 8N1}
     UARTConnected:=true;
   end;
 end;

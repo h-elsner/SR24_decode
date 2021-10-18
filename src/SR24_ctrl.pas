@@ -42,7 +42,10 @@ unit SR24_ctrl;
 interface
 
 uses
-  sysutils, baseunix;
+  {$IFDEF UNIX}
+    baseunix,
+  {$EndIf}
+    sysutils;
 
 const
   pathPWM='/sys/class/pwm/pwmchip0/';                    {Path to HW PWM in file system}
@@ -78,7 +81,7 @@ function  PWMStatus: byte;                               {0: PWM not activated,
 function  ActivatePWMChannel(GPIOnr: string): byte;      {results PWM status after activation}
 procedure DeactivatePWM;                                 {Deactivate all PWM channels}
 procedure DeactivateGPIO(GPIOnr: byte);                  {Deactivate and close GPIO pin}
-{Write data to PWM channel: PWM channel 0 or 1, PWM period in micro sec, cycle in ns, inversed-Default not}
+{Write data to PWM channel: PWM channel 0 or 1, PWM period in µs, cycle in ns, inversed-Default not}
 procedure SetPWMChannel(const PWMnr: byte; freq: uint32; cycle: uint64; revers: boolean = true);
 procedure SetPWMCycle(const PWMnr: byte; cycle: uint64); {Set duty cycle in ns}
 function  ActivateGPIO(GPIOnr: byte): boolean;           {Open GPIO port as Out/Low as default}
@@ -87,20 +90,24 @@ procedure SetGPIO(GPIOnr: byte; Gbit: char = '0');       {Output on one GPIO out
 implementation
 
 function WriteSysFile(filename: string; const value: SysData): boolean;
+{$IFDEF UNIX}
 var
   f: cint;
+{$EndIf}
 
 begin
   result:=false;
-  f:=fpOpen(filename, o_wronly);                         {Open file to write a string}
-  if f>0 then begin
-    try
-      if length(value)=fpWrite(f, value[1], length(value)) then
-        result:=true;
-    finally
-      fpClose(f);
+  {$IFDEF UNIX}
+    f:=fpOpen(filename, o_wronly);                         {Open file to write a string}
+    if f>0 then begin
+      try
+        if length(value)=fpWrite(f, value[1], length(value)) then
+          result:=true;
+      finally
+        fpClose(f);
+      end;
     end;
-  end;
+  {$EndIf}
 end;
 
 function ExtractGPIOnr(gpn: string): byte;               {GPIO number from name}
@@ -200,13 +207,13 @@ begin
     WriteSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue, Gbit);
 end;
 
-{Write data to PWM channel: PWM channel 0 or 1, PWM period in micro sec, cycle in ns, inversed-Default not}
+{Write data to PWM channel: PWM channel 0 or 1, PWM period in µs, cycle in ns, inversed-Default not}
 procedure SetPWMChannel(const PWMnr: byte; freq: uint32; cycle: uint64; revers: boolean = true);
 var
   speriod, scycle: SysData;
 
 begin
-  speriod:=IntToStr(freq*1000);                          {Convert from micro to ns, default: 20000}
+  speriod:=IntToStr(freq*1000);                          {Convert from µs to ns, default: 20000}
   scycle:=IntToStr(cycle);                               {Cycle in ns}
   case PWMnr of
     0: begin

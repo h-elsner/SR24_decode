@@ -65,6 +65,7 @@ const
   aux5=  'Aux 5';
   pwmcycle='PWM cycle';
   pwmrev=  'PWM reverse';
+  logging= 'Logging';
 
   chnr=  'Channel';
   svmin= 'Minimum';
@@ -95,7 +96,7 @@ const
                                 (5, 3412, 2048, 683, notused, notused), (9, 2184, 2184, 3412, notused, notused),
                                 (10, 683, 1502, 3412, notused, notused),(11, 4095, 4095, 0, notused, notused),
                                 (12, 3412, 3412, 683, notused, notused),
-                                {start/stop button: channel, active, GPIOnr and PWM cycle for all servos, n/a, n/a}
+                                {start/stop button: channel, active, GPIOnr and PWM cycle for all servos, n/a, logging}
                                 (1, 0, notused, 20000, 0, 0));
 
 function  GetSettingsFile(bak: boolean=false): string;  {Get path and file name to settings}
@@ -152,6 +153,7 @@ var
 begin
   liste.Add(comment+' Common settings');
   liste.Add(pwmcycle+assgn+IntToStr(sets[12, 3]));
+  liste.Add(logging+assgn+IntToStr(sets[12, 5]));
   liste.Add('');
 
   liste.Add(comment+' Correction factor');
@@ -202,11 +204,9 @@ end;
 
 procedure WriteDefaultsSettings;                        {Array DefaultSetting into text file}
 var
-  fn: string;
   liste: TStringList;
 
 begin
-  fn:=GetSettingsFile;
   liste:=TStringList.Create;
   try
     liste.Add('# Default settings created at '+
@@ -299,6 +299,11 @@ begin
             if s.Split([assgn])[0]=pwmcycle then begin
               if TryStrToInt(trim(s.Split([assgn])[1]), w) then
                 sets[12, 3]:=w;
+              Continue;
+            end;
+            if s.Split([assgn])[0]=logging then begin
+              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
+                sets[12, 5]:=w;
               Continue;
             end;
 
