@@ -128,6 +128,7 @@ type
     procedure btnConnectClick(Sender: TObject);
     procedure btnListenClick(Sender: TObject);
     procedure btnListenRawClick(Sender: TObject);
+    procedure btnLoadDefaultClick(Sender: TObject);
     procedure btnSaveSettingsClick(Sender: TObject);
     procedure btnSendClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
@@ -206,11 +207,11 @@ begin
     13: result:='RTH Coming';
     14: result:='RTH Landing';
     15: result:='Binding';
-    16: result:='Initializing/Ready';                    {Ready to start}
+    16: result:='Initializing/Ready';              {Ready to start}
     17: result:='Waiting on RC';
     18: result:='Magnetomer calibration';
     19: result:='Unknown';
-    20: result:='Agility/Rate';                         {Rate}
+    20: result:='Agility/Rate';                    {Rate}
     21: result:='Smart - Follow me';
     22: result:='Smart - Follow me - GPS lost';
     23: result:='Smart - Camera tracking';
@@ -267,9 +268,9 @@ begin
   lblFixType.Caption:=rsFixtype+dpkt+LineEnding+GPSfixType(GetFixType(ft));
 end;
 
-function MessageTypeToStr(mtp: byte):string;
+function MessageTypeToStr(mtp: byte):string;       {Known message types as string}
 begin
-  result:='Unknown '+IntToStr(mtp);
+  result:='Unknown '+IntToStr(mtp)+tab1+'($'+HexStr(mtp, 2)+')';
   case mtp of
     0:  result:='Data12Ch';
     1:  result:='Data24Ch';
@@ -433,9 +434,29 @@ begin
     btnListen.Tag:=1;
 end;
 
-procedure TForm1.btnSaveSettingsClick(Sender: TObject);
+procedure TForm1.btnLoadDefaultClick(Sender: TObject); {Load defaults}
+var
+  list: TStringList;
+  i: integer;
+
 begin
-  mmoSettings.Lines.SaveToFile(GetSettingsFile);
+  list:=TStringList.Create;
+  try
+    mmoSettings.Lines.Clear;
+    mmoSettings.Lines.Add('# Default settings');
+    mmoSettings.Lines.Add('');
+    SettingsToText(DefaultSettings, list);
+    for i:=0 to list.Count-1 do
+      mmoSettings.Lines.Add(list[i]);
+  finally
+    list.Free;
+  end;
+end;
+
+procedure TForm1.btnSaveSettingsClick(Sender: TObject); {Save settings}
+begin
+  if mmoSettings.Lines.Count>3 then
+    mmoSettings.Lines.SaveToFile(GetSettingsFile);
 end;
 
 function StrToCoord(coord: string): single;
@@ -507,7 +528,7 @@ begin
   data[37]:=rgType.ItemIndex+1;                      {Set vehicle type}
 
   data[38]:=Errorstatus;                             {error flags}
-//  data[39]:=round(speGPS.Value*20) and $FF;          {GPSAccH}
+//  data[39]:=round(speGPS.Value*20) and $FF;          {GPSAccH like in flight logs}
   data[39]:=round(speGPS.Value) and $FF;             {GPSAccH}
 
 end;

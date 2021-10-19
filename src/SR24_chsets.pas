@@ -230,7 +230,7 @@ end;
 
  Columns for switches: 0..channel, 1..up, 2..middle, 3..down, 4..GPIOnr, 5..GPIOnr2
  Columns for servos:   0..channel, 1..min, 2..neutral, 3..max, 4..GPIOnr, 5..Revers
- Column 12:            0..channel, 1..Red btn active, 2..GPIOnr, 3..PWMcycle, 4..n/a, 5..n/a
+ Column 12:            0..channel, 1..Red btn active, 2..GPIOnr, 3..PWMcycle, 4..n/a, 5..logging
 
  All default values in setting array remains untouched if something went wrong
  or is missing or there is no need to change it.}
@@ -393,7 +393,7 @@ end;
 {Settings array [index, column]
  Columns for switches: 0..channel, 1..up, 2..middle, 3..down, 4..GPIOnr, 5..GPIOnr2
  Columns for servos:   0..channel, 1..min, 2..neutral, 3..max, 4..GPIOnr, 5..Revers
- Column 12:            0..channel, 1..Red btn active, 2..GPIOnr, 3..PWMcycle, 4..n/a, 5..n/a}
+ Column 12:            0..channel, 1..Red btn active, 2..GPIOnr, 3..PWMcycle, 4..n/a, 5..logging}
 
 function SwitchPos(sets: TSettings; switch: byte;       {Position up..1, middle..2, down..3}
                                     value: uint16; defaultpos: byte = 2): byte;
@@ -411,6 +411,7 @@ begin
         exit
       end;
   end;
+
   if t=1 then begin                                     {Relax values from servos if sticks used as switches}
     result:=2;                                          {Default neutral, middle position}
     thr:=(sets[switch, 3]-sets[switch, 2]) div 3;
@@ -442,13 +443,13 @@ end;
 {Convert an integer value from A/D converter to Yuneec telemetry format
  using to correction factor in settings array [0, 0]}
 
-function VoltToTelemetry(sets: TSettings; volt: uint16): byte;  {Voltage with correction factor}
+function VoltToTelemetry(sets: TSettings; volt: uint16): byte;  {Voltage following rule from Yuneec}
 var
   v: integer;
 
 begin
-  result:=0;
-  v:=round(volt*sets[0, 0]/100)-50;                     {in dV}
+  result:=0;                                            {0 will beread as 5V}
+  v:=round(volt*sets[0, 0]/100)-50;                     {Voltage in dV}
   if (v>0) and (v<256) then                             {Voltage between 5 and 25.5V}
     result:=v;
 end;

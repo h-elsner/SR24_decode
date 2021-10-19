@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 830
+  Left = 808
   Height = 537
-  Top = 83
+  Top = 94
   Width = 820
   Caption = 'Form1'
   ClientHeight = 537
@@ -100,9 +100,9 @@ object Form1: TForm1
     Height = 483
     Top = 48
     Width = 806
-    ActivePage = tbMirror
+    ActivePage = tsSettings
     Anchors = [akTop, akLeft, akRight, akBottom]
-    TabIndex = 2
+    TabIndex = 3
     TabOrder = 4
     object tbRaw: TTabSheet
       Caption = 'Raw data'
@@ -951,7 +951,7 @@ object Form1: TForm1
         Top = 48
         Width = 104
         Caption = 'Load defaults'
-        OnClick = btnLoadSettingsClick
+        OnClick = btnLoadDefaultClick
         TabOrder = 3
       end
       object btnBind: TButton

@@ -16,6 +16,8 @@ byte idx val   desrcription
 	                 CHANNELDATA24      = 1
                          Telemetry to RC    = 2                len $26  38
 	                 TRANSMITTERGPSDATA = 3                len $2B  43
+                         BIND               = 4
+                         GPS/Sonar          = 20
  4       Counter         0 for old SR24 FW (Q500)
  5       ??    Random?   0 for old SR24 FW (Q500)
  6       RSSI  (in % ?)
