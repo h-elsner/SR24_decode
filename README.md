@@ -11,5 +11,9 @@ One can send different values back to ST16 just to see how it reacts. The Demo s
 
 The executable is running with Raspian+GUI on Raspberry Pi.
 
-st16cars.lpr is an example how you can control a model car (or ship) by ST10 or ST16.
+"SR24_decode" is the the test tool
+
+"SR24wizard" is a tool to create and edit settings in file rc_settings.set
+
+"st16cars" is an example how you can control a model car (or ship) by ST10 or ST16.
 It runs as terminal program and should be started at boot time. No GUI. It uses rc_settings.set for configuration.
