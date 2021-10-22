@@ -28,14 +28,10 @@ type
 
   TForm1 = class(TForm)
     btnBind: TButton;
-    btnLoadDefault: TButton;
-    btnSaveSettings: TButton;
-    btnLoadSettings: TButton;
     cbxUARTspeed: TComboBox;
     cgIMU: TCheckGroup;
     cgPCS: TCheckGroup;
     Label17: TLabel;
-    Label4: TLabel;
     lblAmp: TLabel;
     lblStatus1: TLabel;
     lblYaw: TLabel;
@@ -73,7 +69,6 @@ type
     Label16: TLabel;
     lblStatus: TLabel;
     ledStop: TAdvLed;
-    mmoSettings: TMemo;
     mPan: TmKnob;
     rgType: TRadioGroup;
     spePitch: TFloatSpinEdit;
@@ -104,7 +99,6 @@ type
     lblVolt: TLabel;
     lblVx: TLabel;
     speSats: TSpinEdit;
-    tsSettings: TTabSheet;
     tbMirror: TTabSheet;
     btnStop: TButton;
     btnClose: TButton;
@@ -128,13 +122,10 @@ type
     procedure btnConnectClick(Sender: TObject);
     procedure btnListenClick(Sender: TObject);
     procedure btnListenRawClick(Sender: TObject);
-    procedure btnLoadDefaultClick(Sender: TObject);
-    procedure btnSaveSettingsClick(Sender: TObject);
     procedure btnSendClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
-    procedure btnLoadSettingsClick(Sender: TObject);
     procedure cgIMUClick(Sender: TObject);
     procedure cgPCSClick(Sender: TObject);
     procedure edFmodeChange(Sender: TObject);
@@ -242,8 +233,6 @@ begin
   Caption:='Record SR24 data stream';
   mmoProtocol.Text:='';
   mmoProtocol.Font.Name:='Liberation Mono';
-  mmoSettings.Clear;
-  mmoSettings.Font.Name:='Liberation Mono';
   btnStop.Tag:=0;
   btnListen.Tag:=1;
   tmBind.Tag:=1;
@@ -432,31 +421,6 @@ begin
   ListenRaw;
   if btnListen.Tag>100 then
     btnListen.Tag:=1;
-end;
-
-procedure TForm1.btnLoadDefaultClick(Sender: TObject); {Load defaults}
-var
-  list: TStringList;
-  i: integer;
-
-begin
-  list:=TStringList.Create;
-  try
-    mmoSettings.Lines.Clear;
-    mmoSettings.Lines.Add('# Default settings');
-    mmoSettings.Lines.Add('');
-    SettingsToText(DefaultSettings, list);
-    for i:=0 to list.Count-1 do
-      mmoSettings.Lines.Add(list[i]);
-  finally
-    list.Free;
-  end;
-end;
-
-procedure TForm1.btnSaveSettingsClick(Sender: TObject); {Save settings}
-begin
-  if mmoSettings.Lines.Count>3 then
-    mmoSettings.Lines.SaveToFile(GetSettingsFile);
 end;
 
 function StrToCoord(coord: string): single;
@@ -894,23 +858,6 @@ begin
   tmBind.Enabled:=false;
   btnStop.Tag:=1;
   Close;
-end;
-
-procedure TForm1.btnLoadSettingsClick(Sender: TObject);
-var
-  fn: string;
-
-begin
-  btnSaveSettings.Enabled:=true;
-  fn:=GetSettingsFile;
-  if not FileExists(fn) then begin
-    WriteDefaultsSettings;
-    sleep(200);
-    mmoSettings.Lines.LoadFromFile(fn);
-  end else begin
-    mmoSettings.Lines.LoadFromFile(fn);
-    mmoSettings.Lines.SaveToFile(GetSettingsFile(true));   {Save a backup}
-  end;
 end;
 
 procedure TForm1.cgIMUClick(Sender: TObject);

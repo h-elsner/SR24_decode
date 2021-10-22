@@ -100,9 +100,9 @@ object Form1: TForm1
     Height = 483
     Top = 48
     Width = 806
-    ActivePage = tsSettings
+    ActivePage = tbMirror
     Anchors = [akTop, akLeft, akRight, akBottom]
-    TabIndex = 3
+    TabIndex = 2
     TabOrder = 4
     object tbRaw: TTabSheet
       Caption = 'Raw data'
@@ -615,6 +615,15 @@ object Form1: TForm1
         Caption = 'Disconnected'
         ParentColor = False
       end
+      object btnBind: TButton
+        Left = 384
+        Height = 40
+        Top = 272
+        Width = 104
+        Caption = 'Bind'
+        OnClick = btnBindClick
+        TabOrder = 23
+      end
     end
     object tbMirror: TTabSheet
       Caption = 'Demo'
@@ -908,67 +917,6 @@ object Form1: TForm1
         Top = 88
         Width = 66
         Caption = 'Pan Mode'
-        ParentColor = False
-      end
-    end
-    object tsSettings: TTabSheet
-      Caption = 'Settings'
-      ClientHeight = 437
-      ClientWidth = 796
-      object mmoSettings: TMemo
-        Left = 120
-        Height = 419
-        Top = 8
-        Width = 664
-        Anchors = [akTop, akLeft, akRight, akBottom]
-        Lines.Strings = (
-          'mmoSettings'
-        )
-        ScrollBars = ssAutoVertical
-        TabOrder = 0
-      end
-      object btnLoadSettings: TButton
-        Left = 8
-        Height = 25
-        Top = 8
-        Width = 104
-        Caption = 'Load settings'
-        OnClick = btnLoadSettingsClick
-        TabOrder = 1
-      end
-      object btnSaveSettings: TButton
-        Left = 8
-        Height = 25
-        Top = 96
-        Width = 104
-        Caption = 'Save settings'
-        OnClick = btnSaveSettingsClick
-        TabOrder = 2
-      end
-      object btnLoadDefault: TButton
-        Left = 8
-        Height = 25
-        Top = 48
-        Width = 104
-        Caption = 'Load defaults'
-        OnClick = btnLoadDefaultClick
-        TabOrder = 3
-      end
-      object btnBind: TButton
-        Left = 8
-        Height = 25
-        Top = 200
-        Width = 104
-        Caption = 'Bind'
-        OnClick = btnBindClick
-        TabOrder = 4
-      end
-      object Label4: TLabel
-        Left = 8
-        Height = 20
-        Top = 168
-        Width = 35
-        Caption = 'Tools'
         ParentColor = False
       end
     end

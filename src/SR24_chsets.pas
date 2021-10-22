@@ -80,7 +80,7 @@ const
   pio2=  'GPIOnum 2';                                   {Two GPIO ports for 3-way switches}
 
   comment='#';
-  assgn=  ' = ';                                        {Separator between ID and value}
+  assgn=  '=';                                          {Separator between ID and value}
   ObjID1= '[';
   ObjID2= ']';
   lzch=   ' ';
@@ -100,8 +100,10 @@ const
                                 (1, 0, notused, 20000, 0, 0));
 
 function  GetSettingsFile(bak: boolean=false): string;  {Get path and file name to settings}
+function  GetIDvalue(s, id: string): string;            {Get parameter value belonging to ID}
 function  GetControlType(idx: byte): byte;              {Check if servos (1) or switches (7)}
-procedure SettingsToText(const sets: TSettings; var liste: TStringlist);
+procedure SettingsToText(const sets: TSettings;
+                         var liste: TStringlist);       {Create text file from settings}
 procedure WriteDefaultsSettings;                        {Array DefaultSetting into text file}
 procedure ReadSettings(var sets: TSettings);            {Fill settings array from file}
 
@@ -142,27 +144,35 @@ begin
     result:=ChangeFileExt(result, '.bak');
 end;
 
+function GetIDvalue(s, id: string): string;             {Get parameter value belonging to ID}
+begin
+  result:='';
+  if trim(s.Split([assgn])[0])=id then
+    result:=(trim(s.Split([assgn])[1]));
+end;
+
 {Read the settings array and write the related text file.
  This is used to create default settings file and for tests}
 
-procedure SettingsToText(const sets: TSettings; var liste: TStringlist);  {Create text from settings}
+procedure SettingsToText(const sets: TSettings;
+                         var liste: TStringlist);       {Create text file from settings}
 var
   i: integer;
   rv: boolean;
 
 begin
   liste.Add(comment+' Common settings');
-  liste.Add(pwmcycle+assgn+IntToStr(sets[12, 3]));
-  liste.Add(logging+assgn+IntToStr(sets[12, 5]));
+  liste.Add(pwmcycle+lzch+assgn+lzch+IntToStr(sets[12, 3]));
+  liste.Add(logging+lzch+assgn+lzch+IntToStr(sets[12, 5]));
   liste.Add('');
 
   liste.Add(comment+' Correction factor');
-  liste.Add(voltid+assgn+IntToStr(sets[0, 0]));         {Voltage}
-  liste.Add(aux1+assgn+IntToStr(sets[0, 1]));           {Aux 1 - Aux3}
-  liste.Add(aux2+assgn+IntToStr(sets[0, 2]));
-  liste.Add(aux3+assgn+IntToStr(sets[0, 3]));
-  liste.Add(aux4+assgn+IntToStr(sets[0, 4]));
-  liste.Add(aux5+assgn+IntToStr(sets[0, 5]));
+  liste.Add(voltid+lzch+assgn+lzch+IntToStr(sets[0, 0]));         {Voltage}
+  liste.Add(aux1+lzch+assgn+lzch+IntToStr(sets[0, 1]));           {Aux 1 - Aux3}
+  liste.Add(aux2+lzch+assgn+lzch+IntToStr(sets[0, 2]));
+  liste.Add(aux3+lzch+assgn+lzch+IntToStr(sets[0, 3]));
+  liste.Add(aux4+lzch+assgn+lzch+IntToStr(sets[0, 4]));
+  liste.Add(aux5+lzch+assgn+lzch+IntToStr(sets[0, 5]));
   liste.Add('');
   liste.Add(comment+' Hardware PWM0:         0');
   liste.Add(comment+' Hardware PWM1:         1');
@@ -172,31 +182,31 @@ begin
 
   for i:=1 to 6 do begin                                {Write servos 1..6}
     liste.Add(ObjID1+svx+lzch+IntToStr(i)+ObjID2);      {Servo number}
-    liste.Add(chnr+assgn+IntToStr(sets[i, 0]));
-    liste.Add(svmin+assgn+IntToStr(sets[i, 1]));
-    liste.Add(svntrl+assgn+IntToStr(sets[i, 2]));
-    liste.Add(svmax+assgn+IntToStr(sets[i, 3]));
-    liste.Add(pio+assgn+IntToStr(sets[i, 4]));
+    liste.Add(chnr+lzch+assgn+lzch+IntToStr(sets[i, 0]));
+    liste.Add(svmin+lzch+assgn+lzch+IntToStr(sets[i, 1]));
+    liste.Add(svntrl+lzch+assgn+lzch+IntToStr(sets[i, 2]));
+    liste.Add(svmax+lzch+assgn+lzch+IntToStr(sets[i, 3]));
+    liste.Add(pio+lzch+assgn+lzch+IntToStr(sets[i, 4]));
     rv:=false;                                          {PWM reverted}
     if sets[i, 5]=1 then
       rv:=true;                                         {PWM is revers}
-    liste.Add(pwmrev+assgn+BoolToStr(rv, true));
+    liste.Add(pwmrev+lzch+assgn+lzch+BoolToStr(rv, true));
     liste.Add('');
   end;
   for i:=7 to 11 do begin                               {Write switches 1..5}
     liste.Add(ObjID1+swx+lzch+IntToStr(i-6)+ObjID2);
-    liste.Add(chnr+assgn+IntToStr(sets[i, 0]));
-    liste.Add(swup+assgn+IntToStr(sets[i, 1]));
-    liste.Add(swmid+assgn+IntToStr(sets[i, 2]));
-    liste.Add(swdown+assgn+IntToStr(sets[i, 3]));
-    liste.Add(pio+assgn+IntToStr(sets[i, 4]));
-    liste.Add(pio2+assgn+IntToStr(sets[i, 5]));
+    liste.Add(chnr+lzch+assgn+lzch+IntToStr(sets[i, 0]));
+    liste.Add(swup+lzch+assgn+lzch+IntToStr(sets[i, 1]));
+    liste.Add(swmid+lzch+assgn+lzch+IntToStr(sets[i, 2]));
+    liste.Add(swdown+lzch+assgn+lzch+IntToStr(sets[i, 3]));
+    liste.Add(pio+lzch+assgn+lzch+IntToStr(sets[i, 4]));
+    liste.Add(pio2+lzch+assgn+lzch+IntToStr(sets[i, 5]));
     liste.Add('');
   end;
   liste.Add(ObjID1+abtn+ObjID2);                        {Start/stop button}
-  liste.Add(chnr+assgn+IntToStr(sets[12, 0]));
-  liste.Add(actv+assgn+IntToStr(sets[12, 1]));
-  liste.Add(pio+assgn+IntToStr(sets[12, 2]));
+  liste.Add(chnr+lzch+assgn+lzch+IntToStr(sets[12, 0]));
+  liste.Add(actv+lzch+assgn+lzch+IntToStr(sets[12, 1]));
+  liste.Add(pio+lzch+assgn+lzch+IntToStr(sets[12, 2]));
 end;
 
 {This shall be used if no settings file was found. It will be created from scratch
@@ -255,109 +265,89 @@ begin
           if s[1]=ObjID1 then begin                     {Find sections}
             idx:=notused;
             objx:=trim(s.split([ObjID1, ObjID2])[1]);
-            if objx.Split([lzch])[0]=svx then           {Servos}
+            if objx.Split([lzch])[0]=svx then           {idx for Servos}
               idx:=StrToIntDef(objx.Split([lzch])[1], 1);
-            if objx.Split([lzch])[0]=swx then           {Switches}
+            if objx.Split([lzch])[0]=swx then           {idx for Switches}
               idx:=StrToIntDef(objx.Split([lzch])[1], 1)+6;
           end else begin                                {Values with fix positions in array}
-            if s.Split([assgn])[0]=voltid then begin
-              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                sets[0, 0]:=w;
+            if TryStrToInt(GetIDvalue(s, voltid), w) then begin
+              sets[0, 0]:=w;
               Continue;
             end;
-            if s.Split([assgn])[0]=aux1 then begin
-              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                sets[0, 1]:=w;
+            if TryStrToInt(GetIDvalue(s, aux1), w) then begin
+              sets[0, 1]:=w;
               Continue;
             end;
-            if s.Split([assgn])[0]=aux2 then begin
-              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                sets[0, 2]:=w;
+            if TryStrToInt(GetIDvalue(s, aux2), w) then begin
+              sets[0, 2]:=w;
               Continue;
             end;
-            if s.Split([assgn])[0]=aux3 then begin
-              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                sets[0, 3]:=w;
+            if TryStrToInt(GetIDvalue(s, aux3), w) then begin
+              sets[0, 3]:=w;
               Continue;
             end;
-            if s.Split([assgn])[0]=aux4 then begin
-              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                sets[0, 4]:=w;
+            if TryStrToInt(GetIDvalue(s, aux4), w) then begin
+              sets[0, 4]:=w;
               Continue;
             end;
-            if s.Split([assgn])[0]=aux5 then begin
-              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                sets[0, 5]:=w;
+            if TryStrToInt(GetIDvalue(s, aux5), w) then begin
+              sets[0, 5]:=w;
               Continue;
             end;
 
-            if s.Split([assgn])[0]=actv then begin
-              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                sets[12, 1]:=w;
+            if TryStrToInt(GetIDvalue(s, actv), w) then begin
+              sets[12, 1]:=w;
               Continue;
             end;
-            if s.Split([assgn])[0]=pwmcycle then begin
-              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                sets[12, 3]:=w;
+            if TryStrToInt(GetIDvalue(s, pwmcycle), w) then begin
+              sets[12, 3]:=w;
               Continue;
             end;
-            if s.Split([assgn])[0]=logging then begin
-              if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                sets[12, 5]:=w;
+            if TryStrToInt(GetIDvalue(s, logging), w) then begin
+              sets[12, 5]:=w;
               Continue;
             end;
 
             if idx<13 then begin                        {Values assigned via index}
-              if s.Split([assgn])[0]=chnr then begin
-                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[idx, 0]:=w;
+              if TryStrToInt(GetIDvalue(s, chnr), w) then begin
+                sets[idx, 0]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=svmin then begin
-                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[idx, 1]:=w;
+              if TryStrToInt(GetIDvalue(s, svmin), w) then begin
+                sets[idx, 1]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=svntrl then begin
-                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[idx, 2]:=w;
+              if TryStrToInt(GetIDvalue(s, svntrl), w) then begin
+                sets[idx, 2]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=svmax then begin
-                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[idx, 3]:=w;
+              if TryStrToInt(GetIDvalue(s, svmax), w) then begin
+                sets[idx, 3]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=pio then begin
-                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[idx, 4]:=w;
+              if TryStrToInt(GetIDvalue(s, pio), w) then begin
+                sets[idx, 4]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=pwmrev then begin
-                if StrToBoolDef(trim(s.Split([assgn])[1]), false) then
-                  sets[idx, 5]:=1;
+              if TryStrToInt(GetIDvalue(s, pwmrev), w) then begin
+                sets[idx, 5]:=w;
                 Continue;
               end;
 
-              if s.Split([assgn])[0]=swup then begin
-                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[idx, 1]:=w;
+              if TryStrToInt(GetIDvalue(s, swup), w) then begin
+                sets[idx, 1]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=swmid then begin
-                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[idx, 2]:=w;
+              if TryStrToInt(GetIDvalue(s, swmid), w) then begin
+                sets[idx, 2]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=swdown then begin
-                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[idx, 3]:=w;
+              if TryStrToInt(GetIDvalue(s, swdown), w) then begin
+                sets[idx, 3]:=w;
                 Continue;
               end;
-              if s.Split([assgn])[0]=pio2 then begin
-                if TryStrToInt(trim(s.Split([assgn])[1]), w) then
-                  sets[idx, 5]:=w;
-              end;
+              if TryStrToInt(GetIDvalue(s, pio2), w) then
+                sets[idx, 5]:=w;
             end;
           end;
         end;

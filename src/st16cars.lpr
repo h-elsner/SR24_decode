@@ -1,3 +1,14 @@
+{Control a model with ST10 or ST16 and ZigBee Receiver SR24.
+ Configuration of HW made by config file. Two HW PWM channels for servos are
+ supported and you can assign all switches to a GPIO output.
+
+ st16cars needs to be in autostart:
+ Add to crontab   @reboot /home/pi/st16cars
+
+ }
+
+
+
 program st16cars;
 
 {$mode objfpc}{$H+}
