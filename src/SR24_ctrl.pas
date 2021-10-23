@@ -1,7 +1,7 @@
 {GPIO control 
 
- Control GPIO by sysfs
- ---------------------
+ Control GPIO of Raspberry Pi by sysfs
+ -------------------------------------
 
  Basic GPIO control using the sysfs interface is slower than writing into memory
  but easier to program.
@@ -63,9 +63,14 @@ const
   fEnable='enable';                                      {1 enable, 0 disable}
   keyRevers='inversed';
   keyNoRevers='normal';
+  keyIn='in';
+  keyOut='out';
+  GPIOhigh='1';
+  GPIOlow='0';
 
-  ziff=['0'..'9'];
-  GPIOinvalid=28;
+  ziff=['0'..'9'];                                       {Valid digits in a string}
+  GPIOinvalid=28;                                        {GPIOnr must be lower than that}
+  GPIOnodat=' ';                                         {Could not read data from GPIO port}
 
   waitfs=50;                                             {Wait for file system to create GPIO system file}
 
@@ -74,6 +79,7 @@ type
   SysData=string[16];                                    {16 is maximum length to send a string}
 
 function  WriteSysFile(filename: string; const value: SysData): boolean;
+function  ReadSysFile(filename: string): char;           {Read '0' or '1' from GPIO}
 function  ExtractGPIOnr(gpn: string): byte;              {GPIO number from name}
 function  PWMStatus: byte;                               {0: PWM not activated,
                                                           3: Channel 0,
@@ -82,10 +88,13 @@ function  ActivatePWMChannel(GPIOnr: string): byte;      {results PWM status aft
 procedure DeactivatePWM;                                 {Deactivate all PWM channels}
 procedure DeactivateGPIO(GPIOnr: byte);                  {Deactivate and close GPIO pin}
 {Write data to PWM channel: PWM channel 0 or 1, PWM period in µs, cycle in ns, inversed-Default not}
-procedure SetPWMChannel(const PWMnr: byte; freq: uint32; cycle: uint64; revers: boolean = true);
+procedure SetPWMChannel(const PWMnr: byte; peri: uint32;
+                        cycle: uint64; revers: boolean = true);
 procedure SetPWMCycle(const PWMnr: byte; cycle: uint64); {Set duty cycle in ns}
-function  ActivateGPIO(GPIOnr: byte): boolean;           {Open GPIO port as Out/Low as default}
-procedure SetGPIO(GPIOnr: byte; Gbit: char = '0');       {Output on one GPIO out-pin}
+function  ActivateGPIO(GPIOnr, dir: byte): boolean;      {Open GPIO port as Out/Low as default, dir=1 means input}
+procedure SetGPIO(GPIOnr: byte; Gbit: char=GPIOlow);     {Output on one GPIO out-pin}
+function  GetGPIO(GPIOnr: byte): char;                   {Read GPIO out-pin}
+
 
 implementation
 
@@ -98,11 +107,31 @@ var
 begin
   result:=false;
   {$IFDEF UNIX}
-    f:=fpOpen(filename, o_wronly);                         {Open file to write a string}
+    f:=fpOpen(filename, o_wronly);                       {Open file to write a string}
     if f>0 then begin
       try
         if length(value)=fpWrite(f, value[1], length(value)) then
           result:=true;
+      finally
+        fpClose(f);
+      end;
+    end;
+  {$EndIf}
+end;
+
+function ReadSysFile(filename: string): char;            {Read '0' or '1' from GPIO}
+{$IFDEF UNIX}
+var
+  f: cint;
+{$EndIf}
+
+begin
+  result:=GPIOnodat;                                     {Space as default = got nothing}
+  {$IFDEF UNIX}
+    f:=fpOpen(filename, o_rdonly);                       {Open file to read a string}
+    if f>0 then begin
+      try
+        fpRead(f, result, 1);
       finally
         fpClose(f);
       end;
@@ -145,12 +174,12 @@ begin
   status:=PWMstatus;                                     {Check wich channels are available}
   case status of
     1: begin
-         WriteSysFile(pathPWM+fSysStart, '0');
-         if GPIOnr='2' then
-           WriteSysFile(pathPWM+fSysStart, '1');
+         WriteSysFile(pathPWM+fSysStart, GPIOlow);
+         if GPIOnr='2' then                              {Both Hardware PWM channels}
+           WriteSysFile(pathPWM+fSysStart, GPIOhigh);
        end;
     3: if GPIOnr='2' then
-         WriteSysFile(pathPWM+fSysStart, '1');
+         WriteSysFile(pathPWM+fSysStart, GPIOhigh);
   end;
   sleep(waitfs);                                         {Wait for file system reaction}
   result:=PWMstatus;
@@ -163,15 +192,15 @@ var
 begin
   status:=PWMstatus;
   if status=3 then begin
-    WriteSysFile(pathPWM+PWMchan0+fenable, '0');
-    WriteSysFile(pathPWM+fSysStop, '0');
+    WriteSysFile(pathPWM+PWMchan0+fenable, GPIOlow);
+    WriteSysFile(pathPWM+fSysStop, GPIOlow);
     exit;
   end;
   if status=7 then begin
-    WriteSysFile(pathPWM+PWMchan0+fenable, '0');         {disable PWM}
-    WriteSysFile(pathPWM+PWMchan1+fenable, '0');         {Switch off channel 0}
-    WriteSysFile(pathPWM+fSysStop, '0');
-    WriteSysFile(pathPWM+fSysStop, '1');                 {Switch off channel 1}
+    WriteSysFile(pathPWM+PWMchan0+fenable, GPIOlow);     {disable PWM}
+    WriteSysFile(pathPWM+PWMchan1+fenable, GPIOlow);     {Switch off channel 0}
+    WriteSysFile(pathPWM+fSysStop, GPIOlow);
+    WriteSysFile(pathPWM+fSysStop, GPIOhigh);            {Switch off channel 1}
   end;
 end;
 
@@ -181,11 +210,15 @@ begin
     WriteSysFile(pathGPIO+fSysStop, IntToStr(GPIOnr));
 end;
 
-function ActivateGPIO(GPIOnr: byte): boolean;            {Open GPIO port as Out/Low as default}
+function ActivateGPIO(GPIOnr, dir: byte): boolean;       {Open GPIO port as Out and Low as default}
 var
-  gpn: string;
+  gpn, dr: string;
 
-begin
+begin                                                    {dir=1 .. input, dir=0 .. output}
+  if dir=1 then
+    dr:=keyIn
+  else
+    dr:=keyOut;
   if GPIOnr<GPIOinvalid then begin
     gpn:=IntToStr(GPIOnr);
     result:=DirectoryExists(pathGPIO+fgpio+gpn);
@@ -194,26 +227,33 @@ begin
       sleep(waitfs);
     end;
     if DirectoryExists(pathGPIO+fgpio+gpn) then begin
-      WriteSysFile(pathGPIO+fgpio+gpn+fDirection, 'out');
+      WriteSysFile(pathGPIO+fgpio+gpn+fDirection, dr);
       SetGPIO(GPIOnr);                                   {Send default 0}
       result:=true;
     end;
   end;
 end;
 
-procedure SetGPIO(GPIOnr: byte; Gbit: char = '0');       {Send value 0 or 1 to out-pin}
+procedure SetGPIO(GPIOnr: byte; Gbit: char = GPIOlow);   {Send value '0' or '1' to out-pin}
 begin
   if GPIOnr<GPIOinvalid then
     WriteSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue, Gbit);
 end;
 
+function GetGPIO(GPIOnr: byte): char;                    {Get value '0' or '1' from any pin}
+begin
+  if GPIOnr<GPIOinvalid then
+    result:=ReadSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue);
+end;
+
 {Write data to PWM channel: PWM channel 0 or 1, PWM period in µs, cycle in ns, inversed-Default not}
-procedure SetPWMChannel(const PWMnr: byte; freq: uint32; cycle: uint64; revers: boolean = true);
+procedure SetPWMChannel(const PWMnr: byte; peri: uint32;
+                        cycle: uint64; revers: boolean = true);
 var
   speriod, scycle: SysData;
 
 begin
-  speriod:=IntToStr(freq*1000);                          {Convert from µs to ns, default: 20000}
+  speriod:=IntToStr(peri*1000);                          {Convert from µs to ns, default: 20000}
   scycle:=IntToStr(cycle);                               {Cycle in ns}
   case PWMnr of
     0: begin
@@ -221,14 +261,14 @@ begin
          WriteSysFile(pathPWM+PWMchan0+fcycle, scycle);
          if revers then
            WriteSysFile(pathPWM+PWMchan0+frevers, keyrevers);
-         WriteSysFile(pathPWM+PWMchan0+fenable, '1');
+         WriteSysFile(pathPWM+PWMchan0+fenable, GPIOhigh);
        end;
     1: begin
          WriteSysFile(pathPWM+PWMchan1+fperiod, speriod);
          WriteSysFile(pathPWM+PWMchan1+fcycle, scycle);
          if revers then
            WriteSysFile(pathPWM+PWMchan1+frevers, keyrevers);
-         WriteSysFile(pathPWM+PWMchan1+fenable, '1');
+         WriteSysFile(pathPWM+PWMchan1+fenable, GPIOhigh);
        end;
   end;
 end;

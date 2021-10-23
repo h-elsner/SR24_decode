@@ -18,8 +18,8 @@ Set unused servos and button to neutral, default values
   GPIO 16   Pin 36
   GPIO 17   Pin 11
   GPIO 22   Pin 15
-  GPIO 23   Pin 16
-  GPIO 24   Pin 18
+ *GPIO 23   Pin 16   reserved for Voltage Warning 1
+ *GPIO 24   Pin 18   reserved for Voltage Warning 2
   GPIO 25   Pin 22
   GPIO 26   Pin 37
   GPIO 27   Pin 13   keep the other GPIO pins free for sensors

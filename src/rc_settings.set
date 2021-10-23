@@ -79,7 +79,7 @@ Channel = 7
 Minimum = 683
 Neutral = 2048
 Maximum = 3412
-GPIOnum = 23
+GPIOnum = 25
 PWM reverse = False
 
 [Servo 6]

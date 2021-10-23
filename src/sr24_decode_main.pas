@@ -566,11 +566,13 @@ begin
   for i:=1 to 11 do begin
     g:=csets[i, 4];
     if (g<notused) and (g>4) then
-      ActivateGPIO(g);
+      ActivateGPIO(g, 0);
     g:=csets[i, 5];
-    if (g<notused) and (g>4) then                    {Will also activate GPIO ports for de-muxer}
-      ActivateGPIO(g);
+    if (g<notused) and (g>4) then                    {Will also activate GPIO ports pio2}
+      ActivateGPIO(g, 0);
   end;
+  ActivateGPIO(23, 1);                               {Activate ports reserved for input}
+  ActivateGPIO(24, 1);                               {Voltage warnings}
 end;
 
 procedure GPIOoff;                                   {Switch off all used GPIO ports}
@@ -586,6 +588,8 @@ begin
     if (g<notused) and (g>4) then
       DeActivateGPIO(g);
   end;
+  DeactivateGPIO(23);                                {Deactivate ports reserved for input}
+  DeactivateGPIO(24);                                {Voltage warnings}
 end;
 
 procedure ControlSwitches(dat: TPayLoad);            {Send switches to GPIO port}
@@ -598,17 +602,17 @@ begin
     pio:=csets[i, 4];                                {First GPIO port for upper position as ON}
     if (pio<notused) and (pio>4) then begin
       if sw=1 then
-        SetGPIO(pio, '1')
+        SetGPIO(pio, GPIOhigh)
       else
-        SetGPIO(pio, '0');
+        SetGPIO(pio, GPIOlow);
     end;
 
     pio:=csets[i, 5];                                {For 3-way switches use second GPIO, port}
     if (pio<notused) and (pio>4) then begin
       if sw=3 then                                   {Switch in lower position as ON}
-        SetGPIO(pio, '1')
+        SetGPIO(pio, GPIOhigh)
       else
-        SetGPIO(pio, '0');
+        SetGPIO(pio, GPIOlow);
     end;
   end;
 end;
@@ -717,6 +721,11 @@ begin
           for i:=0 to 7 do begin
             tele[i+6]:=coord[i];                     {Mirror coordinates}
             gps:=gps+Coord[i];                       {Check controller GPS}
+          end;
+          if GetGPIO(23)=GPIOhigh then
+            tele[38]:=(tele[38] or 1) and $FD;       {Voltage warning 1}
+          if GetGPIO(24)=GPIOhigh then begin
+            tele[38]:=(tele[38] or 2) and $FE;       {set Voltage warning 2}
           end;
           IntToTelemetry(tele, AltitudeToInt(alt), 14, 4);  {Mirror Altitude m}
           pbRSSI.Position:=GetRSSI(data);            {Show RSSI level}
