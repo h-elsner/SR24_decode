@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
-  Buttons, Menus, ActnList, ExtCtrls, lclintf, SR24_chsets, SR24_dec;
+  Buttons, Menus, ActnList, ExtCtrls, lclintf, XMLPropStorage, SR24_chsets,
+  SR24_dec;
 
 type                                                   {Definitions for TForm1}
 
@@ -60,6 +61,7 @@ type                                                   {Definitions for TForm1}
     tabTools: TTabSheet;
     tabTextedit: TTabSheet;
     tmrBind: TTimer;
+    XMLPropStorage1: TXMLPropStorage;
     procedure actAboutExecute(Sender: TObject);
     procedure actBindExecute(Sender: TObject);
     procedure actCloseExecute(Sender: TObject);
@@ -85,7 +87,7 @@ var
 
 const
   infofile='RCsettings_info.txt';
-  manual='x.pdf';
+  manual='SR24Settings.pdf';
   hppdf='/pdf/';
   meinname='Helmut Elsner';
   email   ='helmut.elsner@live.com';                   {My e-mail address}

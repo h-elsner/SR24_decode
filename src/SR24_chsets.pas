@@ -58,8 +58,8 @@ const
   abtn='Start/stop';                                    {Start button mixed in channel x}
 
   voltid='Voltage';
-  aux1=  'Aux 1';
-  aux2=  'Aux 2';
+  warn1= 'Warn1';
+  warn2= 'Warn2';
   aux3=  'Aux 3';
   aux4=  'Aux 4';
   aux5=  'Aux 5';
@@ -86,8 +86,8 @@ const
   lzch=   ' ';
   notused=88;                                           {Set as GPIOnr for unused channels}
 
-  DefaultSettings: TSettings =  {Correction factors for analog input: voltage, Aux1-Aux5}
-                                ((1000, 1000, 1000, 1000, 1000, 1000),
+  DefaultSettings: TSettings =  {Correction factors for analog input: voltage, GPIOnr Warn1, GPIOnr Warn2, Aux3-Aux5}
+                                ((1000, 88, 88, 1000, 1000, 1000),
                                 {6 servos: channel, min, neutral, max, GPIOnr, PWM reverted (1)}
                                 (1, 683, 2048, 3412, notused, 0), (2, 683, 2048, 3412, notused, 0),
                                 (3, 683, 2048, 3412, notused, 0), (4, 683, 2048, 3412, notused, 0),
@@ -164,13 +164,13 @@ begin
   liste.Add(comment+' Common settings');
   liste.Add(pwmcycle+lzch+assgn+lzch+IntToStr(sets[12, 3]));
   liste.Add(logging+lzch+assgn+lzch+IntToStr(sets[12, 5]));
+  liste.Add(warn1+lzch+assgn+lzch+IntToStr(sets[0, 1]));     {Voltage warning 1}
+  liste.Add(warn2+lzch+assgn+lzch+IntToStr(sets[0, 2]));     {Voltage warning 2}
   liste.Add('');
 
   liste.Add(comment+' Correction factor');
-  liste.Add(voltid+lzch+assgn+lzch+IntToStr(sets[0, 0]));         {Voltage}
-  liste.Add(aux1+lzch+assgn+lzch+IntToStr(sets[0, 1]));           {Aux 1 - Aux3}
-  liste.Add(aux2+lzch+assgn+lzch+IntToStr(sets[0, 2]));
-  liste.Add(aux3+lzch+assgn+lzch+IntToStr(sets[0, 3]));
+  liste.Add(voltid+lzch+assgn+lzch+IntToStr(sets[0, 0]));    {Voltage}
+  liste.Add(aux3+lzch+assgn+lzch+IntToStr(sets[0, 3]));      {Aux 1 - Aux3}
   liste.Add(aux4+lzch+assgn+lzch+IntToStr(sets[0, 4]));
   liste.Add(aux5+lzch+assgn+lzch+IntToStr(sets[0, 5]));
   liste.Add('');
@@ -274,11 +274,11 @@ begin
               sets[0, 0]:=w;
               Continue;
             end;
-            if TryStrToInt(GetIDvalue(s, aux1), w) then begin
+            if TryStrToInt(GetIDvalue(s, warn1), w) then begin
               sets[0, 1]:=w;
               Continue;
             end;
-            if TryStrToInt(GetIDvalue(s, aux2), w) then begin
+            if TryStrToInt(GetIDvalue(s, warn2), w) then begin
               sets[0, 2]:=w;
               Continue;
             end;

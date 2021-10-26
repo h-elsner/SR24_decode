@@ -48,10 +48,10 @@ begin
   for i:=1 to 11 do begin
     g:=csets[i, 4];
     if (g<notused) and (g>4) then
-      ActivateGPIO(g);
+      ActivateGPIO(g, 0);
     g:=csets[i, 5];
     if (g<notused) and (g>4) then                    {Will also activate GPIO ports for de-muxer}
-      ActivateGPIO(g);
+      ActivateGPIO(g, 0);
   end;
 end;
 

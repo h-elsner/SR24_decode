@@ -1,38 +1,11 @@
-# Settings for ST16
-#
-# Defaults (could be changed by Channel Setting in ST16, be aware):
-# Channel  1 - Throttle THR
-# Channel  2 - Roll     AILL
-# Channel  3 - Pitch    ELE
-# Channel  4 - Yaw      RUD
-# Channel  5 - Flight mode
-# Channel  6 - RTH
-# Channel  7 - Camera tilt
-# Channel  8 - Camera pan
-# Channel  9 - Gimbal tilt mode
-# Channel 10 - Gimbal pan mode
-# Channel 11 - Landing gear
-# Channel 12 - Aux button
-# Start/stop - Mixed to Throttle = 0
-# 
-# Servo output - PWM duty in micro seconds, common 1100-1900
-#
-# 1  +------+    Default analog servo:
-#    |      |    Cycle = 20000             (= 20ms/50Hz)   
-#    |      |    Min   = 2100 
-#    |<---->|    Null  = 1500
-#    |      |    Min   = 900
-#    |      |
-# 0 -+      +----------------------+
-#
 # Common settings
 PWM cycle = 20000
 Logging = 0
+Warn1 = 88
+Warn2 = 88
 
 # Correction factor
 Voltage = 1234
-Aux 1 = 1000
-Aux 2 = 1000
 Aux 3 = 1000
 Aux 4 = 1000
 Aux 5 = 1000
@@ -79,7 +52,7 @@ Channel = 7
 Minimum = 683
 Neutral = 2048
 Maximum = 3412
-GPIOnum = 25
+GPIOnum = 88
 PWM reverse = False
 
 [Servo 6]
@@ -119,7 +92,7 @@ Channel = 11
 Upper  position = 4095
 Middle position = 4095
 Lower  position = 0
-GPIOnum = 88
+GPIOnum = 25
 GPIOnum 2 = 88
 
 [Switch 5]
