@@ -53,6 +53,12 @@ begin
     if (g<notused) and (g>4) then                    {Will also activate GPIO ports for de-muxer}
       ActivateGPIO(g, 0);
   end;
+  g:=csets[0, 1];                                    {Voltage warning 1}
+  if (g<notused) and (g>4) then
+    ActivateGPIO(g, 1);
+  g:=csets[0, 2];                                    {Voltage warning 2}
+  if (g<notused) and (g>4) then
+    ActivateGPIO(g, 1);
 end;
 
 procedure GPIOoff;                                   {Switch off all used GPIO ports}
@@ -68,6 +74,12 @@ begin
     if (g<notused) and (g>4) then
       DeActivateGPIO(g);
   end;
+  g:=csets[0, 1];                                    {Deactivate ports Voltage warnings}
+  if (g<notused) and (g>4) then
+    DeActivateGPIO(g);
+  g:=csets[0, 2];                                    {Deactivate ports Voltage warnings}
+  if (g<notused) and (g>4) then
+    DeActivateGPIO(g);
 end;
 
 procedure InitServos;                                {Initialize Servos. Only two can get HW PWM channels 0 or 1}
@@ -180,6 +192,12 @@ begin
                 tele[i+6]:=coord[i];                 {Mirror coordinates}
                 gps:=gps+Coord[i];                   {Check controller GPS if something >0 is there}
               end;
+              i:=csets[0, 1];
+              if (i<notused) and (i>4) and (GetGPIO(i)=GPIOhigh) then
+                tele[38]:=(tele[38] or 1) and $FD;   {Voltage warning 1}
+              i:=csets[0, 2];
+              if (i<notused) and (i>4) and (GetGPIO(i)=GPIOhigh) then
+                tele[38]:=(tele[38] or 2) and $FE;   {Voltage warning 2}
               IntToTelemetry(tele, AltitudeToInt(alt), 14, 4);  {Mirror Altitude m}
               i:=data[44];                           {nsat}
               tele[36]:=4;
