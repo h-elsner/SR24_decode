@@ -81,20 +81,21 @@ type
 function  WriteSysFile(filename: string; const value: SysData): boolean;
 function  ReadSysFile(filename: string): char;           {Read '0' or '1' from GPIO}
 function  ExtractGPIOnr(gpn: string): byte;              {GPIO number from name}
+
+function  ActivatePWMChannel(GPIOnr: string): byte;      {results PWM status after activation}
 function  PWMStatus: byte;                               {0: PWM not activated,
                                                           3: Channel 0,
                                                           7: both 0 and 1 active}
-function  ActivatePWMChannel(GPIOnr: string): byte;      {results PWM status after activation}
-procedure DeactivatePWM;                                 {Deactivate all PWM channels}
-procedure DeactivateGPIO(GPIOnr: byte);                  {Deactivate and close GPIO pin}
-{Write data to PWM channel: PWM channel 0 or 1, PWM period in µs, cycle in ns, inversed-Default not}
 procedure SetPWMChannel(const PWMnr: byte; peri: uint32;
                         cycle: uint64; revers: boolean = true);
 procedure SetPWMCycle(const PWMnr: byte; cycle: uint64); {Set duty cycle in ns}
+procedure DeactivatePWM;                                 {Deactivate all PWM channels}
+
+{Write data to PWM channel: PWM channel 0 or 1, PWM period in µs, cycle in ns, inversed-Default not}
 function  ActivateGPIO(GPIOnr, dir: byte): boolean;      {Open GPIO port as Out/Low as default, dir=1 means input}
 procedure SetGPIO(GPIOnr: byte; Gbit: char=GPIOlow);     {Output on one GPIO out-pin}
 function  GetGPIO(GPIOnr: byte): char;                   {Read GPIO out-pin}
-
+procedure DeactivateGPIO(GPIOnr: byte);                  {Deactivate and close GPIO pin}
 
 implementation
 
@@ -155,17 +156,6 @@ begin
     result:=i;
 end;
 
-function PWMStatus: byte;                                {result: 0, 3 or 7}
-begin
-  result:=0;
-  if DirectoryExists(pathPWM) then
-    result:=1;                                           {System file created}
-  if DirectoryExists(pathPWM+PWMchan0) then
-    result:=result or 2;                                 {PWM channel 0 OK}
-  if DirectoryExists(pathPWM+PWMchan1) then
-    result:=result or 4;                                 {PWM channel 1 OK}
-end;
-
 function ActivatePWMChannel(GPIOnr: string): byte;       {Activate one (0) or both PWM channels}
 var
   status: byte;
@@ -185,65 +175,15 @@ begin
   result:=PWMstatus;
 end;
 
-procedure DeactivatePWM;                                 {Deactivate and close HW-PWM channels}
-var
-  status: byte;
-
+function PWMStatus: byte;                                {result: 0, 3 or 7}
 begin
-  status:=PWMstatus;
-  if status=3 then begin
-    WriteSysFile(pathPWM+PWMchan0+fenable, GPIOlow);
-    WriteSysFile(pathPWM+fSysStop, GPIOlow);
-    exit;
-  end;
-  if status=7 then begin
-    WriteSysFile(pathPWM+PWMchan0+fenable, GPIOlow);     {disable PWM}
-    WriteSysFile(pathPWM+PWMchan1+fenable, GPIOlow);     {Switch off channel 0}
-    WriteSysFile(pathPWM+fSysStop, GPIOlow);
-    WriteSysFile(pathPWM+fSysStop, GPIOhigh);            {Switch off channel 1}
-  end;
-end;
-
-procedure DeactivateGPIO(GPIOnr: byte);                  {Deactivate and close GPIO pin}
-begin
-  if GPIOnr<GPIOinvalid then
-    WriteSysFile(pathGPIO+fSysStop, IntToStr(GPIOnr));
-end;
-
-function ActivateGPIO(GPIOnr, dir: byte): boolean;       {Open GPIO port as Out and Low as default}
-var
-  gpn, dr: string;
-
-begin                                                    {dir=1 .. input, dir=0 .. output}
-  if dir=1 then
-    dr:=keyIn
-  else
-    dr:=keyOut;
-  if GPIOnr<GPIOinvalid then begin
-    gpn:=IntToStr(GPIOnr);
-    result:=DirectoryExists(pathGPIO+fgpio+gpn);
-    if not result then begin
-      WriteSysFile(pathGPIO+fSysStart, gpn);
-      sleep(waitfs);
-    end;
-    if DirectoryExists(pathGPIO+fgpio+gpn) then begin
-      WriteSysFile(pathGPIO+fgpio+gpn+fDirection, dr);
-      SetGPIO(GPIOnr);                                   {Send default 0}
-      result:=true;
-    end;
-  end;
-end;
-
-procedure SetGPIO(GPIOnr: byte; Gbit: char = GPIOlow);   {Send value '0' or '1' to out-pin}
-begin
-  if GPIOnr<GPIOinvalid then
-    WriteSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue, Gbit);
-end;
-
-function GetGPIO(GPIOnr: byte): char;                    {Get value '0' or '1' from any pin}
-begin
-  if GPIOnr<GPIOinvalid then
-    result:=ReadSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue);
+  result:=0;
+  if DirectoryExists(pathPWM) then
+    result:=1;                                           {System file created}
+  if DirectoryExists(pathPWM+PWMchan0) then
+    result:=result or 2;                                 {PWM channel 0 OK}
+  if DirectoryExists(pathPWM+PWMchan1) then
+    result:=result or 4;                                 {PWM channel 1 OK}
 end;
 
 {Write data to PWM channel: PWM channel 0 or 1, PWM period in µs, cycle in ns, inversed-Default not}
@@ -284,5 +224,67 @@ begin
     1: WriteSysFile(pathPWM+PWMchan1+fcycle, scycle);
   end;
 end;
+
+procedure DeactivatePWM;                                 {Deactivate and close HW-PWM channels}
+var
+  status: byte;
+
+begin
+  status:=PWMstatus;
+  if status=3 then begin
+    WriteSysFile(pathPWM+PWMchan0+fenable, GPIOlow);
+    WriteSysFile(pathPWM+fSysStop, GPIOlow);
+    exit;
+  end;
+  if status=7 then begin
+    WriteSysFile(pathPWM+PWMchan0+fenable, GPIOlow);     {disable PWM}
+    WriteSysFile(pathPWM+PWMchan1+fenable, GPIOlow);     {Switch off channel 0}
+    WriteSysFile(pathPWM+fSysStop, GPIOlow);
+    WriteSysFile(pathPWM+fSysStop, GPIOhigh);            {Switch off channel 1}
+  end;
+end;
+
+function ActivateGPIO(GPIOnr, dir: byte): boolean;       {Open GPIO port as Out and Low as default}
+var
+  gpn, dr: string;
+
+begin                                                    {dir=1 .. input, dir=0 .. output}
+  if dir=1 then
+    dr:=keyIn
+  else
+    dr:=keyOut;
+  if GPIOnr<GPIOinvalid then begin
+    gpn:=IntToStr(GPIOnr);
+    result:=DirectoryExists(pathGPIO+fgpio+gpn);
+    if not result then begin
+      WriteSysFile(pathGPIO+fSysStart, gpn);
+      sleep(waitfs);
+    end;
+    if DirectoryExists(pathGPIO+fgpio+gpn) then begin
+      WriteSysFile(pathGPIO+fgpio+gpn+fDirection, dr);
+      SetGPIO(GPIOnr);                                   {Send default 0}
+      result:=true;
+    end;
+  end;
+end;
+
+procedure SetGPIO(GPIOnr: byte; Gbit: char = GPIOlow);   {Send value '0' or '1' to out-pin}
+begin
+  if GPIOnr<GPIOinvalid then
+    WriteSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue, Gbit);
+end;
+
+function GetGPIO(GPIOnr: byte): char;                    {Get value '0' or '1' from any pin}
+begin
+  if GPIOnr<GPIOinvalid then
+    result:=ReadSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue);
+end;
+
+procedure DeactivateGPIO(GPIOnr: byte);                  {Deactivate and close GPIO pin}
+begin
+  if GPIOnr<GPIOinvalid then
+    WriteSysFile(pathGPIO+fSysStop, IntToStr(GPIOnr));
+end;
+
 
 end.
