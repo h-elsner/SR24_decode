@@ -159,7 +159,7 @@ begin
     ReadSettings(csets);                             {Load common settings}
     InitServos;                                      {Set up PWM channels}
     GPIOon;
-    ConnectUART(uartport, 115200, SR24connected);
+    ConnectUART(uartport, UARTspeed, SR24connected);
     if SR24connected then begin
 
       if not UARTCanRead then begin                  {Wait for RC}

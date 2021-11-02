@@ -105,6 +105,7 @@ function  GetControlType(idx: byte): byte;              {Check if servos (1) or 
 procedure SettingsToText(const sets: TSettings;
                          var liste: TStringlist);       {Create text file from settings}
 procedure WriteDefaultsSettings;                        {Array DefaultSetting into text file}
+function  ReadSettingsList(inlist: TStringList): TSettings;
 procedure ReadSettings(var sets: TSettings);            {Fill settings array from file}
 
 function  StkToPWM(sets: TSettings; servo: byte;        {Analog stick position to PWM in ns}
@@ -187,9 +188,9 @@ begin
     liste.Add(svntrl+lzch+assgn+lzch+IntToStr(sets[i, 2]));
     liste.Add(svmax+lzch+assgn+lzch+IntToStr(sets[i, 3]));
     liste.Add(pio+lzch+assgn+lzch+IntToStr(sets[i, 4]));
-    rv:=false;                                          {PWM reverted}
-    if sets[i, 5]=1 then
-      rv:=true;                                         {PWM is revers}
+    rv:=false;                                          {Default: PWM not reverted}
+    if sets[i, 5]>0 then
+      rv:=true;                                         {PWM is reverted}
     liste.Add(pwmrev+lzch+assgn+lzch+BoolToStr(rv, true));
     liste.Add('');
   end;
@@ -245,115 +246,128 @@ end;
  All default values in setting array remains untouched if something went wrong
  or is missing or there is no need to change it.}
 
+function ReadSettingsList(inlist: TStringList): TSettings;
+var
+  s, objx: string;
+  i, w: integer;
+  idx: byte;
+
+begin
+  result:=DefaultSettings;                              {Fill with defaults}
+  if inlist.Count>10 then begin
+    for i:=0 to inlist.Count-1 do begin                 {Read the settings file line by line}
+      s:=trim(inlist[i]);
+      if (s<>'') and (s[1]<>comment) then begin         {Skip comments}
+        if s[1]=ObjID1 then begin                       {Find sections}
+          idx:=notused;
+          objx:=trim(s.split([ObjID1, ObjID2])[1]);
+          if objx.Split([lzch])[0]=svx then             {idx for Servos}
+            idx:=StrToIntDef(objx.Split([lzch])[1], 1);
+          if objx.Split([lzch])[0]=swx then             {idx for Switches}
+            idx:=StrToIntDef(objx.Split([lzch])[1], 1)+6;
+        end else begin                                  {Values with fix positions in array}
+          if TryStrToInt(GetIDvalue(s, voltid), w) then begin
+            result[0, 0]:=w;
+            Continue;
+          end;
+          if TryStrToInt(GetIDvalue(s, warn1), w) then begin
+            result[0, 1]:=w;
+            Continue;
+          end;
+          if TryStrToInt(GetIDvalue(s, warn2), w) then begin
+            result[0, 2]:=w;
+            Continue;
+          end;
+          if TryStrToInt(GetIDvalue(s, aux3), w) then begin
+            result[0, 3]:=w;
+            Continue;
+          end;
+          if TryStrToInt(GetIDvalue(s, aux4), w) then begin
+            result[0, 4]:=w;
+            Continue;
+          end;
+          if TryStrToInt(GetIDvalue(s, aux5), w) then begin
+            result[0, 5]:=w;
+            Continue;
+          end;
+
+          if TryStrToInt(GetIDvalue(s, actv), w) then begin
+            result[12, 1]:=w;
+            Continue;
+          end;
+          if TryStrToInt(GetIDvalue(s, pwmcycle), w) then begin
+            result[12, 3]:=w;
+            Continue;
+          end;
+          if TryStrToInt(GetIDvalue(s, logging), w) then begin
+            result[12, 5]:=w;
+            Continue;
+          end;
+
+          if idx<13 then begin                          {Values assigned via index}
+            if TryStrToInt(GetIDvalue(s, chnr), w) then begin
+              result[idx, 0]:=w;
+              Continue;
+            end;
+            if TryStrToInt(GetIDvalue(s, svmin), w) then begin
+              result[idx, 1]:=w;
+              Continue;
+            end;
+            if TryStrToInt(GetIDvalue(s, svntrl), w) then begin
+              result[idx, 2]:=w;
+              Continue;
+            end;
+            if TryStrToInt(GetIDvalue(s, svmax), w) then begin
+              result[idx, 3]:=w;
+              Continue;
+            end;
+            if TryStrToInt(GetIDvalue(s, pio), w) then begin
+              result[idx, 4]:=w;
+              Continue;
+            end;
+            if TryStrToInt(GetIDvalue(s, pwmrev), w) then begin
+              result[idx, 5]:=w;
+              Continue;
+            end;
+
+            if TryStrToInt(GetIDvalue(s, swup), w) then begin
+              result[idx, 1]:=w;
+              Continue;
+            end;
+            if TryStrToInt(GetIDvalue(s, swmid), w) then begin
+              result[idx, 2]:=w;
+              Continue;
+            end;
+            if TryStrToInt(GetIDvalue(s, swdown), w) then begin
+              result[idx, 3]:=w;
+              Continue;
+            end;
+            if TryStrToInt(GetIDvalue(s, pio2), w) then
+              result[idx, 5]:=w;
+          end;
+        end;
+      end;
+    end;
+  end;
+end;
+
 procedure ReadSettings(var sets: TSettings);            {Fill settings array from file}
 var
   s, objx: string;
   i, w: integer;
   idx: byte;
-  inlist: TStringList;
+  list: TStringList;
 
 begin
   sets:=DefaultSettings;                                {Fill with defaults}
   s:=GetSettingsFile;
   if FileExists(s) then begin
-    inlist:=TStringList.Create;
-    inlist.LoadFromFile(s);
+    list:=TStringList.Create;
+    list.LoadFromFile(s);
     try
-      for i:=0 to inlist.Count-1 do begin               {Read the settings file line by line}
-        s:=trim(inlist[i]);
-        if (s<>'') and (s[1]<>comment) then begin       {Skip comments}
-          if s[1]=ObjID1 then begin                     {Find sections}
-            idx:=notused;
-            objx:=trim(s.split([ObjID1, ObjID2])[1]);
-            if objx.Split([lzch])[0]=svx then           {idx for Servos}
-              idx:=StrToIntDef(objx.Split([lzch])[1], 1);
-            if objx.Split([lzch])[0]=swx then           {idx for Switches}
-              idx:=StrToIntDef(objx.Split([lzch])[1], 1)+6;
-          end else begin                                {Values with fix positions in array}
-            if TryStrToInt(GetIDvalue(s, voltid), w) then begin
-              sets[0, 0]:=w;
-              Continue;
-            end;
-            if TryStrToInt(GetIDvalue(s, warn1), w) then begin
-              sets[0, 1]:=w;
-              Continue;
-            end;
-            if TryStrToInt(GetIDvalue(s, warn2), w) then begin
-              sets[0, 2]:=w;
-              Continue;
-            end;
-            if TryStrToInt(GetIDvalue(s, aux3), w) then begin
-              sets[0, 3]:=w;
-              Continue;
-            end;
-            if TryStrToInt(GetIDvalue(s, aux4), w) then begin
-              sets[0, 4]:=w;
-              Continue;
-            end;
-            if TryStrToInt(GetIDvalue(s, aux5), w) then begin
-              sets[0, 5]:=w;
-              Continue;
-            end;
-
-            if TryStrToInt(GetIDvalue(s, actv), w) then begin
-              sets[12, 1]:=w;
-              Continue;
-            end;
-            if TryStrToInt(GetIDvalue(s, pwmcycle), w) then begin
-              sets[12, 3]:=w;
-              Continue;
-            end;
-            if TryStrToInt(GetIDvalue(s, logging), w) then begin
-              sets[12, 5]:=w;
-              Continue;
-            end;
-
-            if idx<13 then begin                        {Values assigned via index}
-              if TryStrToInt(GetIDvalue(s, chnr), w) then begin
-                sets[idx, 0]:=w;
-                Continue;
-              end;
-              if TryStrToInt(GetIDvalue(s, svmin), w) then begin
-                sets[idx, 1]:=w;
-                Continue;
-              end;
-              if TryStrToInt(GetIDvalue(s, svntrl), w) then begin
-                sets[idx, 2]:=w;
-                Continue;
-              end;
-              if TryStrToInt(GetIDvalue(s, svmax), w) then begin
-                sets[idx, 3]:=w;
-                Continue;
-              end;
-              if TryStrToInt(GetIDvalue(s, pio), w) then begin
-                sets[idx, 4]:=w;
-                Continue;
-              end;
-              if TryStrToInt(GetIDvalue(s, pwmrev), w) then begin
-                sets[idx, 5]:=w;
-                Continue;
-              end;
-
-              if TryStrToInt(GetIDvalue(s, swup), w) then begin
-                sets[idx, 1]:=w;
-                Continue;
-              end;
-              if TryStrToInt(GetIDvalue(s, swmid), w) then begin
-                sets[idx, 2]:=w;
-                Continue;
-              end;
-              if TryStrToInt(GetIDvalue(s, swdown), w) then begin
-                sets[idx, 3]:=w;
-                Continue;
-              end;
-              if TryStrToInt(GetIDvalue(s, pio2), w) then
-                sets[idx, 5]:=w;
-            end;
-          end;
-        end;
-      end;
+      sets:=ReadSettingsList(list);
     finally
-      inlist.Free;
+      list.Free;
     end;
   end;
 end;

@@ -1,10 +1,11 @@
 object Form1: TForm1
-  Left = 924
-  Height = 447
-  Top = 37
+  Left = 939
+  Height = 474
+  Top = 103
   Width = 713
+  ActiveControl = PageControl1
   Caption = 'Form1'
-  ClientHeight = 421
+  ClientHeight = 448
   ClientWidth = 713
   Constraints.MinHeight = 400
   Constraints.MinWidth = 540
@@ -16,7 +17,7 @@ object Form1: TForm1
   LCLVersion = '2.0.12.0'
   object PageControl1: TPageControl
     Left = 0
-    Height = 421
+    Height = 448
     Top = 0
     Width = 713
     ActivePage = tabTools
@@ -26,14 +27,14 @@ object Form1: TForm1
     TabOrder = 0
     object tabTextedit: TTabSheet
       Caption = 'Text editor'
-      ClientHeight = 375
+      ClientHeight = 402
       ClientWidth = 703
       ImageIndex = 7
       object mmoText: TMemo
         Left = 8
-        Height = 317
+        Height = 357
         Top = 8
-        Width = 616
+        Width = 684
         Anchors = [akTop, akLeft, akRight, akBottom]
         Font.Name = 'Liberation Mono'
         Lines.Strings = (
@@ -47,16 +48,16 @@ object Form1: TForm1
       object btnLoad: TBitBtn
         Left = 8
         Height = 30
-        Top = 336
+        Top = 376
         Width = 115
         Action = actOpen
         Anchors = [akLeft, akBottom]
         TabOrder = 1
       end
       object btnClose: TBitBtn
-        Left = 509
+        Left = 577
         Height = 30
-        Top = 336
+        Top = 376
         Width = 115
         Action = actClose
         Anchors = [akRight, akBottom]
@@ -65,7 +66,7 @@ object Form1: TForm1
       object btnDefault: TBitBtn
         Left = 136
         Height = 30
-        Top = 336
+        Top = 376
         Width = 115
         Action = actDefault
         Anchors = [akLeft, akBottom]
@@ -74,7 +75,7 @@ object Form1: TForm1
       object btnSave: TBitBtn
         Left = 264
         Height = 30
-        Top = 336
+        Top = 376
         Width = 115
         Action = actSave
         Anchors = [akLeft, akBottom]
@@ -83,20 +84,20 @@ object Form1: TForm1
     end
     object tabTools: TTabSheet
       Caption = 'Tools/Info'
-      ClientHeight = 375
+      ClientHeight = 402
       ClientWidth = 703
       ImageIndex = 1
       object btnBind: TBitBtn
         Left = 8
         Height = 30
-        Top = 152
+        Top = 256
         Width = 128
         Action = actBind
         TabOrder = 0
       end
       object mmoInfo: TMemo
         Left = 144
-        Height = 325
+        Height = 347
         Top = 8
         Width = 548
         Anchors = [akTop, akLeft, akRight, akBottom]
@@ -113,7 +114,7 @@ object Form1: TForm1
       object btnClose1: TBitBtn
         Left = 577
         Height = 30
-        Top = 339
+        Top = 363
         Width = 115
         Action = actClose
         Anchors = [akRight, akBottom]
@@ -130,7 +131,7 @@ object Form1: TForm1
       object cbxPort: TComboBox
         Left = 8
         Height = 30
-        Top = 120
+        Top = 217
         Width = 128
         ItemHeight = 0
         Items.Strings = (
@@ -160,10 +161,27 @@ object Form1: TForm1
       object lblSerial: TLabel
         Left = 8
         Height = 20
-        Top = 103
+        Top = 192
         Width = 66
         Caption = 'Serial port'
         ParentColor = False
+      end
+      object lblTemp: TLabel
+        Left = 432
+        Height = 20
+        Top = 368
+        Width = 112
+        Anchors = [akLeft, akBottom]
+        Caption = 'SoC temperature'
+        ParentColor = False
+      end
+      object btnCheck: TBitBtn
+        Left = 8
+        Height = 30
+        Top = 56
+        Width = 128
+        Action = actCheck
+        TabOrder = 5
       end
     end
   end
@@ -205,6 +223,12 @@ object Form1: TForm1
     end
     object mnTools: TMenuItem
       Caption = '&Tools'
+      object MenuItem3: TMenuItem
+        Action = actCheck
+      end
+      object N6: TMenuItem
+        Caption = '-'
+      end
       object mnBind: TMenuItem
         Action = actBind
       end
@@ -273,7 +297,7 @@ object Form1: TForm1
     object actFindInfo: TAction
       Caption = '&Load info'
       Hint = 'Load info file if not yet loaded.'
-      ImageIndex = 10
+      ImageIndex = 12
       OnExecute = actFindInfoExecute
     end
     object actManual: TAction
@@ -294,6 +318,12 @@ object Form1: TForm1
       ImageIndex = 11
       OnExecute = actHomepageExecute
     end
+    object actCheck: TAction
+      Caption = 'Check &settings'
+      Hint = 'Check consistency of settings'
+      ImageIndex = 10
+      OnExecute = actCheckExecute
+    end
   end
   object tmrBind: TTimer
     Tag = 1
@@ -307,7 +337,7 @@ object Form1: TForm1
     Left = 464
     Top = 88
     Bitmap = {
-      4C690C0000001000000010000000C0C0C000C0C0C000A9A9C81E9A9ACD33A1A1
+      4C690D0000001000000010000000C0C0C000C0C0C000A9A9C81E9A9ACD33A1A1
       CA28C0C0C000C0C0C000C0C0C000C0C0C000C0C0C000A9A9C81E1E1EF5D72626
       E9CCC0C0C000C0C0C000C0C0C000C0C0C000C0C0C0004D4DD7990000E6FF1717
       CFE19292923DC0C0C000C0C0C000C0C0C000A1A1CA282E2EE1C20000E6FF1717
@@ -691,12 +721,50 @@ object Form1: TForm1
       99FFFFCC99FFFFCC99FFFFCC99FFFFCC99FFFFCC99FFFFCC99FFFFCC99FFFFCC
       99FFFFCC99FFFFCC99FFFFCC99FFFCCA9800FCCA9800FCCA9800FCCA9800FCCA
       9800FCCA9800FCCA9800FCCA9800FCCA9800FCCA9800FCCA9800FCCA9800FCCA
-      9800FCCA9800FCCA9800FCCA9800
+      9800FCCA9800FCCA9800FCCA9800FFFFFF009E6E4D2B9D6D4CD69D6D4BC59D6C
+      4BFF9C6C4AFF9C6B49FF9B6A49FF9B6A48FF9A6947FF996846FF986745FF9364
+      43FF845D3EDEFFFFFF00FFFFFF00FFFFFF009D6D4C919D6D4BFEBB9778FFAC82
+      62FFAC8161FFAB8060FFAB7F5FFFAA7F5EFFA87E5DFFA87C5CFF9D6D4CFF9766
+      43FF885C3CFFFFFFFF00FFFFFF00FFFFFF009D6D4BCFBA9778FFD8C5B9FFE8DE
+      D7FFE7DDD6FFE6DCD6FFE4DBD4FFE3DAD3FFE2D8D1FFE1D7D0FFEBE7E5FFEFEF
+      EFFF573E2AFFFFFFFF00FFFFFF00FFFFFF009C6C4BE0D9C2A5FFB59170FFAB80
+      5FFFA97E5EFFA97E5EFFA87D5CFFA87C5BFFA77B5AFFA67959FF9C6B49FF9664
+      41FF573E2AFFFFFFFF00FFFFFF00FFFFFF009C6B4AE1DDC8A9FFD4BD95FFE6D4
+      B9FFE6D1B6FFE4D0B5FFE3CEB3FFE2CBB0FFE0C9ADFFDFC7A9FFDABFA0FF9A6B
+      4AFF573E2AFFFFFFFF00FFFFFF00FFFFFF009B6A49E1DBC5A6FFC6A776FFD9BF
+      9BFFD1B793FFCBB08EFFCAAE8AFFC8AB87FFCBAB83FFD1B087FFD8BB9BFF996A
+      48FF573E2AFFFFFFFF00FFFFFF00FFFFFF009B6A48E1D9C2A4FFC1A472FFD2B8
+      94FFF5EDE4FFF4ECE2FFF4ECE1FFF4EBE0FFF3EADFFFCBA97FFFD6B896FF9969
+      47FF573E2AFFFFFFFF00FFFFFF00FFFFFF009A6947E1D7BF9FFFBD9F6FFFD4B5
+      90FFCBAD88FFC7A881FFC6A57DFFC4A17AFFC5A176FFCBA77BFFD4B490FF9868
+      46FF573E2AFFFFFFFF00FFFFFF00FFFFFF00996846E1D5BB9BFFB89A69FFD4B3
+      8AFFD2AF87FFD0AD82FFCFAA7DFFCDA678FFCBA474FFCCA475FFD2B18AFF9767
+      45FF573E2AFFFFFFFF00FFFFFF00FFFFFF00996745E1D2B796FFB49265FFD1AE
+      83FFCFAB7FFFCDA87AFFCBA576FFCAA271FFC89E6DFFC89F6DFFD0AE86FF9665
+      44FF573E2AFFFFFFFF00FFFFFF00FFFFFF00986644E1D0B492FFAF8B60FFCEA9
+      7CFFCCA677FFCBA374FFC9A06EFFC79D6AFFC69A66FFC69B68FFCDA882FF9564
+      42FF573E2AFFFFFFFF00FFFFFF00FFFFFF00976543E1CEB08EFFAA855BFFCBA4
+      75FFCAA271FFC89E6BFFC69B68FFC59963FFC2945EFFC49461FFCCA57DFF9463
+      41FF573E2AFFFFFFFF00FFFFFF00FFFFFF00966441E1CBAC88FFA67E57FFC99F
+      6EFFC79D69FFC69966FFC39761FFC2925CFFC18F59FFC18E5BFFCAA178FF9462
+      40FF573E2AFFFFFFFF00FFFFFF00FFFFFF00966340E1CAA985FFA37854FFC69A
+      67FFC49862FFC2945EFFC1905AFFC08C56FFBE8953FFBF8855FFC99D75FF9362
+      3FFF553C28E1FFFFFF00FFFFFF00FFFFFF0095623FE1CCAB85FFD1AF89FFD2B0
+      88FFD1AD85FFD0AA81FFCFA77FFFCEA47BFFCDA17AFFCB9F77FFC79971FF9361
+      3EFF4E3421A1FFFFFF00FFFFFF00FFFFFF0094613E9C94603DFF93603CFF925F
+      3BFF925E3AFF915D39FF905D38FF905C38FF8F5B37FF8F5A36FF8E5A35FF8E59
+      35B1FFFFFF00FFFFFF00FFFFFF00
     }
   end
   object XMLPropStorage1: TXMLPropStorage
     StoredValues = <>
     Left = 303
     Top = 232
+  end
+  object tmrTemp: TTimer
+    Interval = 3000
+    OnTimer = tmrTempTimer
+    Left = 303
+    Top = 160
   end
 end

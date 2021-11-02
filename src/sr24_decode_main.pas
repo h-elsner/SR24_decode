@@ -266,7 +266,7 @@ begin
     2:  result:='Telemetry';
     3:  result:='GPS data';
     4:  result:='Bind mode';
-    20: result:='OBS switch';
+    20: result:='Commands';
   end;
 end;
 
@@ -332,7 +332,7 @@ var
 
 begin
   case cbxUARTspeed.ItemIndex of
-    0: bps:=115200;
+    0: bps:=UARTspeed;                              {SR24 default speed}
     1: bps:=230400;
   end;
   ConnectUART(trim(cbxUARTname.Text), bps, SR24connected);
@@ -410,8 +410,11 @@ begin
   btnListenRaw.Enabled:=false;
   btnListen.Enabled:=false;
   tmBind.Tag:=1;
-  tmBind.Enabled:=true;
   sr24Con;
+  if UARTCanWrite then
+    tmBind.Enabled:=true
+  else
+    lblStatus1.Caption:='No connection';
 end;
 
 procedure TForm1.btnListenRawClick(Sender: TObject); {Read raw bytes}

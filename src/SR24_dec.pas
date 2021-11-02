@@ -45,6 +45,7 @@ uses
 
 const
   timeout=500;
+  UARTSpeed=115200;                                     {SR24 default speed}
 
   header1=$55;                                          {Message start ID}
   header2=$55;
