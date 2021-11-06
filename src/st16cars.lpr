@@ -134,6 +134,17 @@ begin
   end;
 end;
 
+function ExitStatusToStr(ex: byte):string;
+begin
+  result:='Stopped - OK';
+  case ex of
+    1: result:='No PWM channels';
+    2: result:='Not connected';
+    3: result:='Cannot read from UART';
+    4: result:='No valid messages';
+  end;
+end;
+
 procedure st16car1.DoRun;
 var
   data, tele: TPayLoad;
@@ -144,6 +155,7 @@ var
 
 begin
   exitStatus:=0;                                     {Exit no faults}
+  SR24connected:=false;
   z:=0;
   tlz:=0;
   alt:=0;
@@ -193,24 +205,24 @@ begin
                 gps:=gps+Coord[i];                   {Check controller GPS if something >0 is there}
               end;
               i:=csets[0, 1];
-              if (i<notused) and (i>4) and (GetGPIO(i)=GPIOhigh) then
+              if (i<GPIOinvalid) and (i>1) and (GetGPIO(i)=GPIOhigh) then
                 tele[38]:=(tele[38] or 1) and $FD;   {Voltage warning 1}
               i:=csets[0, 2];
-              if (i<notused) and (i>4) and (GetGPIO(i)=GPIOhigh) then
+              if (i<GPIOinvalid) and (i>1) and (GetGPIO(i)=GPIOhigh) then
                 tele[38]:=(tele[38] or 2) and $FE;   {Voltage warning 2}
               IntToTelemetry(tele, AltitudeToInt(alt), 14, 4);  {Mirror Altitude m}
               i:=data[44];                           {nsat}
-              tele[36]:=4;
+              tele[36]:=4;                           {Angle w/o GPS, but it means here w/o GPS from RC}
               if gps>0 then begin
                 i:=i or $80;                         {GPS of RC aquired}
-                tele[36]:=3;
+                tele[36]:=3;                         {Flight mode}
               end;
               tele[24]:=i;                           {nsat + GPS used}
               UARTsendMsg(tele);
               z:=0;                                  {Reset counter}
               inc(tlz);                              {Counter for sent packages}
               if tlz>=65535 then
-                tlz:=0;
+                tlz:=0;                              {Reset counter}
             end;
 // End fake telemetry with coordinates
 //          if z>10 then
@@ -229,7 +241,7 @@ begin
   DeactivatePWM;
   GPIOoff;
   DisconnectUART(SR24connected);
-  writeln(ExitStatus);
+  writeln(ExitStatusToStr(ExitStatus));
   Terminate;
 end;
 

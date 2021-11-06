@@ -52,6 +52,7 @@
       <Optimizations>
         <OptimizationLevel Value="2"/>
       </Optimizations>
+      <SmallerCode Value="True"/>
     </CodeGeneration>
     <Linking>
       <Debugging>
