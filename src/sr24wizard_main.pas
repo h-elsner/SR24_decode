@@ -116,9 +116,16 @@ const
 
   errNoCon='SR24 not connected';
   errLoad='Load settings file to check.';
+  errInvPio='Invalid GPIO pin number.';
+  rsValidNR='Valid but not recommended GPIO pin.';
+  rsWarnPWM='PWM channels should not assigned to switches.';
   rsGPIO='GPIO';
   errPinX=' already used. Do you really want to use this pin for multiple purposes?';
   errChanX=' already used. Do you really want to use this channel for multiple purposes?';
+  errInvChan='Invalid RC channel number.';
+  errPWMset='PWM channel must not assigned here.';
+  rsCheckOK='Settings seems to be OK. No inconsistency found.';
+  rsDefaultSet='OK, those are the default settings.';
   tab1=' ';
 
   servx=[1..4, 7, 8];                                  {Valid channel numbers for servos}
@@ -228,6 +235,20 @@ begin
   end;
 end;
 
+function CompareToDefault(csets: TSettings):boolean;   {Check against default}
+var
+  i, k: byte;
+
+begin
+  result:=true;
+  for i:=0 to 12 do
+    for k:=0 to 5 do
+      if csets[i, k]<>DefaultSettings[i, k] then begin
+        result:=false;
+        exit;
+      end;
+end;
+
 procedure TForm1.actCheckExecute(Sender: TObject);     {Check consistency of settings}
 var
   csets: TSettings;
@@ -246,9 +267,9 @@ var
     result:='';                                        {Nothing to worry about}
     kp:=ValidGPIO(csets[idx, spx]);
     case kp of
-      0: result:=result+rsErr+'Invalid GPIO pin number.'+LineEnding;
+      0: result:=result+rsErr+errInvPio+LineEnding;
       1: begin
-           result:=result+rsHint+'Valid but not recommended GPIO pin.'+LineEnding;
+           result:=result+rsHint+rsValidNR+LineEnding;
            pioarr[csets[idx, spx]]:=pioarr[csets[idx, spx]]+1;
            if pioarr[csets[idx, spx]]>1 then
              result:=result+rsWarn+rsGPIO+tab1+IntToStr(csets[idx, spx])+errPinX+LineEnding;
@@ -261,12 +282,12 @@ var
       3: if pwm then begin
            pioarr[csets[idx, spx]]:=pioarr[csets[idx, spx]]+1;
            if idx>6 then
-             result:=result+rsWarn+'PWM channels should not assigned to switches.'+LineEnding;
+             result:=result+rsWarn+rsWarnPWM+LineEnding;
            if pioarr[csets[idx, spx]]>1 then
              result:=result+rsWarn+'PWM'+IntToStr(csets[idx, spx])+errPinX+LineEnding;
          end else begin
            pioarr[csets[idx, spx]]:=pioarr[csets[idx, spx]]+1;
-           result:=result+rsErr+'PWM channel must not assigned here.'+LineEnding;
+           result:=result+rsErr+errPWMset+LineEnding;
          end;
     end;
   end;
@@ -284,7 +305,7 @@ var
       if (idx<7) and (csets[idx, spx] in switx) then   {Proper channels for servos}
         result:=result+rsHint+'In ST16 standard settings those channels belongs to switches and buttons.'+LineEnding;
     end else
-      result:=result+rsErr+'Invalid RC channel number.'+LineEnding;
+      result:=result+rsErr+errInvChan+LineEnding;
   end;
 
 begin
@@ -302,70 +323,73 @@ begin
     try
       inlist.Assign(mmoText.Lines);
       csets:=ReadSettingsList(inlist);
-
-      ps:=CheckGPIO(0, 1, false);                      {Voltage warning 1}
-      if ps<>'' then begin
-        mmoInfo.Lines.Add(warn1);
-        mmoInfo.Lines.Add(ps);
-        inc(zhl);
-      end;
-      ps:=CheckGPIO(0, 2, false);                      {Voltage warning 2}
-      if ps<>'' then begin
-        mmoInfo.Lines.Add(warn2);
-        mmoInfo.Lines.Add(ps);
-        inc(zhl);
-      end;
-
-      for i:=1 to 6 do begin                           {Check settings for servos}
-        cs:=CheckChannel(i, 0, false);
-        ps:=CheckGPIO(i, 4, true);
-        ps2:='';
-        k:=ValidGPIO(csets[i, 4]);
-        case k of                                      {Check GPIOnum 2 depending on GPIO assigned}
-          1, 2: ps2:=CheckGPIO(i, 5, false);
-          3: if (csets[i, 5]>1) then
-               ps2:=rsErr+pio2+' must not assigned to PWM channels. Use default 0 or 1 for PWM reversed.';
-        end;
-        if (cs<>'') or (ps<>'') or (ps2<>'') then begin
-          mmoInfo.Lines.Add(svx+tab1+IntToStr(i));
-          if cs<>'' then
-            mmoInfo.Lines.Add(cs);
-          if ps<>'' then
-            mmoInfo.Lines.Add(ps);
-          if ps2<>'' then
-            mmoInfo.Lines.Add(ps2);
-          inc(zhl);
-        end;
-      end;
-
-      for i:=7 to 11 do begin                          {Check settings for switches}
-        cs:=CheckChannel(i, 0);
-        ps:=CheckGPIO(i, 4, false);
-        ps2:=CheckGPIO(i, 5, false);                   {GPIOnum 2}
-        if (cs<>'') or (ps<>'') or (ps2<>'') then begin
-          mmoInfo.Lines.Add(swx+tab1+IntToStr(i-6));
-          if cs<>'' then
-            mmoInfo.Lines.Add(cs);
-          if ps<>'' then
-            mmoInfo.Lines.Add(ps);
-          if ps2<>'' then
-            mmoInfo.Lines.Add(ps2);
-          inc(zhl);
-        end;
-      end;
-
-      ps:=CheckGPIO(12, 2, false);                     {Start/stop}
-      cs:=CheckChannel(12, 0, true);
-      if (ps<>'') or (cs<>'') then begin
-        mmoInfo.Lines.Add(abtn);
-        if cs<>'' then
-          mmoInfo.Lines.Add(cs);
-        if ps<>'' then
+      if CompareToDefault(csets) then begin
+        mmoInfo.Lines.Add(rsDefaultSet)
+      end else begin
+        ps:=CheckGPIO(0, 1, false);                    {Voltage warning 1}
+        if ps<>'' then begin
+          mmoInfo.Lines.Add(warn1);
           mmoInfo.Lines.Add(ps);
-        inc(zhl);
+          inc(zhl);
+        end;
+        ps:=CheckGPIO(0, 2, false);                    {Voltage warning 2}
+        if ps<>'' then begin
+          mmoInfo.Lines.Add(warn2);
+          mmoInfo.Lines.Add(ps);
+          inc(zhl);
+        end;
+
+        for i:=1 to 6 do begin                         {Check settings for servos}
+          cs:=CheckChannel(i, 0, false);
+          ps:=CheckGPIO(i, 4, true);
+          ps2:='';
+          k:=ValidGPIO(csets[i, 4]);
+          case k of                                    {Check GPIOnum 2 depending on GPIO assigned}
+            1, 2: ps2:=CheckGPIO(i, 5, false);
+            3: if (csets[i, 5]>1) then
+                 ps2:=rsErr+pio2+' must not assigned to PWM channels. Use default 0 or 1 for PWM reversed.';
+          end;
+          if (cs<>'') or (ps<>'') or (ps2<>'') then begin
+            mmoInfo.Lines.Add(svx+tab1+IntToStr(i));
+            if cs<>'' then
+              mmoInfo.Lines.Add(cs);
+            if ps<>'' then
+              mmoInfo.Lines.Add(ps);
+            if ps2<>'' then
+              mmoInfo.Lines.Add(ps2);
+            inc(zhl);
+          end;
+        end;
+
+        for i:=7 to 11 do begin                        {Check settings for switches}
+          cs:=CheckChannel(i, 0);
+          ps:=CheckGPIO(i, 4, false);
+          ps2:=CheckGPIO(i, 5, false);                 {GPIOnum 2}
+          if (cs<>'') or (ps<>'') or (ps2<>'') then begin
+            mmoInfo.Lines.Add(swx+tab1+IntToStr(i-6));
+            if cs<>'' then
+              mmoInfo.Lines.Add(cs);
+            if ps<>'' then
+              mmoInfo.Lines.Add(ps);
+            if ps2<>'' then
+              mmoInfo.Lines.Add(ps2);
+            inc(zhl);
+          end;
+        end;
+
+        ps:=CheckGPIO(12, 2, false);                   {Start/stop}
+        cs:=CheckChannel(12, 0, true);
+        if (ps<>'') or (cs<>'') then begin
+          mmoInfo.Lines.Add(abtn);
+          if cs<>'' then
+            mmoInfo.Lines.Add(cs);
+          if ps<>'' then
+            mmoInfo.Lines.Add(ps);
+          inc(zhl);
+        end;
+        if zhl=0 then
+          mmoInfo.Lines.Add(rsCheckOK);
       end;
-      if zhl=0 then
-        mmoInfo.Lines.Add('Settings seems to be OK. No inconsistency found.');
     finally
       inlist.Free;
       Screen.Cursor:=crDefault;

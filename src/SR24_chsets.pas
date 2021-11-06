@@ -89,12 +89,12 @@ const
   DefaultSettings: TSettings =  {Correction factors for analog input: voltage, GPIOnr Warn1, GPIOnr Warn2, Aux3-Aux5}
                                 ((1000, 88, 88, 1000, 1000, 1000),
                                 {6 servos: channel, min, neutral, max, GPIOnr, PWM reverted (1)}
-                                (1, 683, 2048, 3412, notused, 0), (2, 683, 2048, 3412, notused, 0),
-                                (3, 683, 2048, 3412, notused, 0), (4, 683, 2048, 3412, notused, 0),
+                                (1, 683, 2048, 3412, notused, 0), (2, 1100, 1500, 1900, 1, 0),
+                                (3, 1100, 1500, 1900, 0, 0), (4, 683, 2048, 3412, 23, 24),
                                 (7, 683, 2048, 3412, notused, 0), (8, 683, 2048, 3412, notused, 0),
                                 {5 switches: channel, up, middle, down, GPIOnr, GPIOnr2}
-                                (5, 3412, 2048, 683, notused, notused), (9, 2184, 2184, 3412, notused, notused),
-                                (10, 683, 1502, 3412, notused, notused),(11, 4095, 4095, 0, notused, notused),
+                                (5, 3412, 2048, 683, notused, notused), (9, 2184, 2184, 3412, 16, notused),
+                                (10, 683, 1502, 3412, 17, 27),(11, 4095, 4095, 0, 26, notused),
                                 (12, 3412, 3412, 683, notused, notused),
                                 {start/stop button: channel, active, GPIOnr and PWM cycle for all servos, n/a, logging}
                                 (1, 0, notused, 20000, 0, 0));
@@ -188,10 +188,14 @@ begin
     liste.Add(svntrl+lzch+assgn+lzch+IntToStr(sets[i, 2]));
     liste.Add(svmax+lzch+assgn+lzch+IntToStr(sets[i, 3]));
     liste.Add(pio+lzch+assgn+lzch+IntToStr(sets[i, 4]));
-    rv:=false;                                          {Default: PWM not reverted}
-    if sets[i, 5]>0 then
-      rv:=true;                                         {PWM is reverted}
-    liste.Add(pwmrev+lzch+assgn+lzch+BoolToStr(rv, true));
+    if (sets[i, 4]>1) and (sets[i, 4]<notused) then begin   {Stick as 3-way switch}
+      liste.Add(pio2+lzch+assgn+lzch+IntToStr(sets[i, 5]));
+    end else begin
+      rv:=false;                                        {Default: PWM not reverted}
+      if sets[i, 5]>0 then
+        rv:=true;                                       {PWM is reverted}
+      liste.Add(pwmrev+lzch+assgn+lzch+BoolToStr(rv, true));
+    end;
     liste.Add('');
   end;
   for i:=7 to 11 do begin                               {Write switches 1..5}

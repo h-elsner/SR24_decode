@@ -1,5 +1,10 @@
 {From ST24.h and ST24.c PX4 Autopilot
 
+ Add to /boot/config.txt:
+ [Switch-off bluetooth to get serial]
+  dtoverlay=pi3-disable-bt
+
+
  Read data from SR24
  -------------------
 

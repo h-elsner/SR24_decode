@@ -12,13 +12,14 @@
  GPIO:
  https://www.ics.com/blog/gpio-programming-using-sysfs-interface
 
+ To activate the 2 PWM channels with default pins, add
+     dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4
+ to /boot/config.txt and reboot.
+
  Defaults (pwm-2chan):
  GPIO18 (pin12) PWM0
  GPIO13 (pin33) PWM1
 
- To activate the 2 PWM channels with default pins, add
-     dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4
- into /boot/config.txt and reboot.
 
  check if pwm chip is active:
  cd /sys/class/pwm/pwmchip0/

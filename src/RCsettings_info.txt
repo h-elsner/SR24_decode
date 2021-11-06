@@ -36,3 +36,4 @@ Gimbal pan mode:  683-1502-3412
 Landing gear:     0-4095
 Aux button:       683-3412
 
+For 2-way switches GPIOnum 2 is useless.
