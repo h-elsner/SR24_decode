@@ -1,8 +1,15 @@
 {From ST24.h and ST24.c PX4 Autopilot
 
+ Preparations:
+ -------------
  Add to /boot/config.txt:
  [Switch-off bluetooth to get serial]
   dtoverlay=pi3-disable-bt
+
+ Switch-off UART console:
+ sudo raspi-config > Interface Options > Serial port >
+ "Would you like a login shell to be accessible over serial?" --> No
+ "Would you like the serial port hardware to be enabled?" --> Yes
 
 
  Read data from SR24
@@ -22,7 +29,7 @@ byte idx val   desrcription
                          Telemetry to RC    = 2                len $26  38
 	                 TRANSMITTERGPSDATA = 3                len $2B  43
                          BIND               = 4
-                         GPS/Sonar          = 20
+                         Commands           = 20
  4       Counter         0 for old SR24 FW (Q500)
  5       ??    Random?   0 for old SR24 FW (Q500)
  6       RSSI  (in % ?)
@@ -37,6 +44,24 @@ Example:
          |---------------------------------------------------------------------|   No bytes in Ln   Ln=24 for type 0 / Ln=43 for type 3 (GPS data)
       |---------------------------------------------------------------------|      bytes for CRC8
 h1 h2 Ln Tp Cntr  Ri Pc Ch0 Ch1  Ch2 Ch3  Ch4 Ch5  Ch6 Ch7  Ch8 Ch9  Ch10Ch11 CRC8                                                     CRC8
+
+Known Action types in Command messages (msg type 20):
+   5 - Sonar config
+   9 - LED config
+  10 - GPS (Ask for config)
+  11 - Home altitude
+
+Others may be from ACTION_TYPE in MissionData.java
+   0 - Request
+   1 - Response
+   2 - Feedback
+   3 - Setting CCC
+   4 - Settig ROI
+   6 - One key take off
+   7 - Setting JOUR
+   8 - Real Sense depth
+
+
 }
 
 unit SR24_dec;
@@ -49,12 +74,13 @@ uses
   synaser;
 
 const
-  timeout=500;
+  timeout=300;
   UARTSpeed=115200;                                     {SR24 default speed}
+  uartport='/dev/ttyAMA0';                              {Default port for Raspberry Pi}
 
   header1=$55;                                          {Message start ID}
   header2=$55;
-  maxlen=$50;                                           {must be < header1 and header2}
+  maxlen=$50;                                           {must be < header1 and header2 ?}
   BindMessage: array [0..10] of byte =
                (header1, header2, 8, 4, 0, 0, $42, $49, $4E, $44, $B0);
                {                len type       B    I    N    D   CRC}

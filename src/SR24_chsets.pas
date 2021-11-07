@@ -4,25 +4,28 @@
  -------------------------------------------
  - assign channel to servo number (6 servos)
  - assign servo number to PWM or GPIO (6 servos)
- - set min, max and neutral per servo, deactivated gets neutral from pitch
+ - set min, max and neutral per servo
  - set up, middle, down, GPIO port per switch (5 switches)
  - set push button (mixed to thr), default=0
 
 Set unused servos and button to neutral, default values
 
-  PWM 0     Hardware PWM0 auf GPIO 18, pin 12
-  PWM 1     Hardware PWM1 auf GPIO 13, pin 33
+  PWM 0     Hardware PWM0 at GPIO 18, pin 12
+  PWM 1     Hardware PWM1 at GPIO 13, pin 33
+
   GPIO 5    Pin 29
   GPIO 6    Pin 31
   GPIO 12   Pin 32
   GPIO 16   Pin 36
   GPIO 17   Pin 11
   GPIO 22   Pin 15
- *GPIO 23   Pin 16   reserved for Voltage Warning 1
- *GPIO 24   Pin 18   reserved for Voltage Warning 2
+  GPIO 23   Pin 16
+  GPIO 24   Pin 18
   GPIO 25   Pin 22
   GPIO 26   Pin 37
-  GPIO 27   Pin 13   keep the other GPIO pins free for sensors
+  GPIO 27   Pin 13
+
+  Keep the other GPIO pins free for sensors.
 
 }
 
@@ -88,7 +91,7 @@ const
 
   DefaultSettings: TSettings =  {Correction factors for analog input: voltage, GPIOnr Warn1, GPIOnr Warn2, Aux3-Aux5}
                                 ((1000, 88, 88, 1000, 1000, 1000),
-                                {6 servos: channel, min, neutral, max, GPIOnr, PWM reverted (1)}
+                                {6 servos: channel, min, neutral, max, GPIOnr, PWM reverted (1) or GPIOnr2}
                                 (1, 683, 2048, 3412, notused, 0), (2, 1100, 1500, 1900, 1, 0),
                                 (3, 1100, 1500, 1900, 0, 0), (4, 683, 2048, 3412, 23, 24),
                                 (7, 683, 2048, 3412, notused, 0), (8, 683, 2048, 3412, notused, 0),
@@ -121,9 +124,9 @@ function  VoltToTelemetry(sets: TSettings;              {Voltage to Yuneec forma
 implementation
 
 {Find out what type of control it is depending on index.
- Output:  0..Correction factors,
-          1..Servos 1 to 6
-          7..Switches, 2-way or 3-way.
+ Output:  0     Correction factors, warnings
+          1..6  Servos 1-6
+          7..11 Switches 1-5, 2-way or 3-way.
          12..Start/stop button and some common values
         >12..notused index, SW fault}
 
@@ -357,9 +360,7 @@ end;
 
 procedure ReadSettings(var sets: TSettings);            {Fill settings array from file}
 var
-  s, objx: string;
-  i, w: integer;
-  idx: byte;
+  s: string;
   list: TStringList;
 
 begin

@@ -2,12 +2,23 @@
  Configuration of HW made by config file. Two HW PWM channels for servos are
  supported and you can assign all switches to a GPIO output.
 
+
  st16cars needs to be in autostart:
- Add to crontab   @reboot /home/pi/st16cars
+ Create a script and start the program as background process:
+ ----------------------
+ #!/bin/bash
+ clear
+ /home/pi/st16cars &
+ -----------------------
+ Save as rcautostart.sh,
+
+ make it executable
+ sudo chmod +x rcautostart.sh
+
+ and add to /etc/rc.local before "exit 0":
+ /home/pi/rcautostart.sh
 
  }
-
-
 
 program st16cars;
 
@@ -35,51 +46,51 @@ var
   SR24Connected: boolean;
   csets: TSettings;
 
-const
-  uartport='/dev/ttyAMA0';
-
 { st16car1 }
 
-procedure GPIOon;                                    {Switch all used GPIO ports to out/0}
+procedure InitGPIO;                                  {Switch all used GPIO pins to out/0}
 var
-  i, g: byte;
+  i: byte;
 
 begin
-  for i:=1 to 11 do begin
-    g:=csets[i, 4];
-    if (g<notused) and (g>4) then
-      ActivateGPIO(g, 0);
-    g:=csets[i, 5];
-    if (g<notused) and (g>4) then                    {Will also activate GPIO ports for de-muxer}
-      ActivateGPIO(g, 0);
+  for i:=1 to 11 do begin                            {For all servos and switches}
+    if ValidGPIOnr(csets[i, 4]) then begin           {Activate GPIOnr pins}
+      ActivateGPIO(csets[i, 4], 0);                  {As output}
+      writeln('Ch', csets[i, 0], ': GPIO', csets[i, 4]); {Info about settings in use}
+    end;
+    if ValidGPIOnr(csets[i, 5]) then begin           {Also activate GPIOnr2 pins}
+      ActivateGPIO(csets[i, 5], 0);
+      writeln('Ch', csets[i, 0], ': GPIO', csets[i, 5]);
+    end;
   end;
-  g:=csets[0, 1];                                    {Voltage warning 1}
-  if (g<notused) and (g>4) then
-    ActivateGPIO(g, 1);
-  g:=csets[0, 2];                                    {Voltage warning 2}
-  if (g<notused) and (g>4) then
-    ActivateGPIO(g, 1);
+
+  if ValidGPIOnr(csets[0, 1]) then begin
+    ActivateGPIO(csets[0, 1], 1);                    {As input}
+    writeln('Warn1: GPIO', csets[i, 5]);             {Info about settings in use}
+  end;
+  if ValidGPIOnr(csets[0, 2]) then begin
+    ActivateGPIO(csets[0, 2], 1);
+    writeln('Warn2: GPIO', csets[i, 5]);
+  end;
 end;
 
 procedure GPIOoff;                                   {Switch off all used GPIO ports}
 var
-  i, g: byte;
+  i: byte;
 
 begin
-  for i:=1 to 11 do begin
-    g:=csets[i, 4];
-    if (g<notused) and (g>4) then
-      DeActivateGPIO(g);
-    g:=csets[i, 5];
-    if (g<notused) and (g>4) then
-      DeActivateGPIO(g);
+  for i:=1 to 11 do begin                            {Deactivate output pins}
+    if ValidGPIOnr(csets[i, 4]) then
+      DeActivateGPIO(csets[i, 4]);
+    if ValidGPIOnr(csets[i, 5]) then
+      DeActivateGPIO(csets[i, 5]);
   end;
-  g:=csets[0, 1];                                    {Deactivate ports Voltage warnings}
-  if (g<notused) and (g>4) then
-    DeActivateGPIO(g);
-  g:=csets[0, 2];                                    {Deactivate ports Voltage warnings}
-  if (g<notused) and (g>4) then
-    DeActivateGPIO(g);
+
+  if ValidGPIOnr(csets[0, 1]) then                   {Deactivate pins Voltage warnings}
+    DeActivateGPIO(csets[0, 1]);
+  if ValidGPIOnr(csets[0, 2]) then begin
+    DeActivateGPIO(csets[0, 2]);
+  end;
 end;
 
 procedure InitServos;                                {Initialize Servos. Only two can get HW PWM channels 0 or 1}
@@ -89,88 +100,81 @@ var
 begin
   for i:= 1 to 6 do begin                            {For all 6 servos}
     pio:=csets[i, 4];
-    if pio<2 then begin
+    if pio<2 then begin                              {PWM0 or 1}
       SetPWMChannel(pio, csets[12, 3],
                     csets[i, 2]*1000,                {Neutral position}
                     (csets[i, 5]=1));
+      write('Ch', csets[i, 0], ': PWM',pio);         {Info about settings in use}
     end;
   end;
 end;
 
 procedure ControlServos(dat: TPayLoad);              {Write pulse duration to PWM}
 var
-  i, pio: byte;
+  i: byte;
 
 begin
-  for i:=1 to 6 do begin                             {For all 6 servos}
-    pio:=csets[i, 4];
-    if pio<2 then
-      SetPWMCycle(pio, StkToPWM(csets, i, GetChValue(dat, csets[i, 0])));
-  end;
+  for i:=1 to 6 do                                   {For all 6 servos}
+    if csets[i, 4]<2 then
+      SetPWMCycle(csets[i, 4], StkToPWM(csets, i, GetChValue(dat, csets[i, 0])));
 end;
 
 procedure ControlSwitches(dat: TPayLoad);            {Send switches to GPIO port}
 var
-  i, pio, sw: byte;
+  i, sw: byte;
 
 begin
   for i:=1 to 11 do begin
     sw:=SwitchPos(csets, i, GetChValue(dat, csets[i, 0]));
-    pio:=csets[i, 4];                                {First GPIO port for upper position as ON}
-    if (pio<notused) and (pio>4) then begin
+    if ValidGPIOnr(csets[i, 4]) then begin           {First GPIO port for upper position as ON}
       if sw=1 then
-        SetGPIO(pio, '1')
+        SetGPIO(csets[i, 4], GPIOhigh)
       else
-        SetGPIO(pio, '0');
+        SetGPIO(csets[i, 4], GPIOlow);
     end;
 
-    pio:=csets[i, 5];                                {For 3-way switches use second GPIO, port}
-    if (pio<notused) and (pio>4) then begin
+    if ValidGPIOnr(csets[i, 5]) then begin           {For 3-way switches use second GPIO, port}
       if sw=3 then                                   {Switch in lower position as ON}
-        SetGPIO(pio, '1')
+        SetGPIO(csets[i, 5], GPIOhigh)
       else
-        SetGPIO(pio, '0');
+        SetGPIO(csets[i, 5], GPIOlow);
     end;
   end;
 end;
 
-function ExitStatusToStr(ex: byte):string;
+function IsStop: boolean;
 begin
-  result:='Stopped - OK';
-  case ex of
-    1: result:='No PWM channels';
-    2: result:='Not connected';
-    3: result:='Cannot read from UART';
-    4: result:='No valid messages';
-  end;
+  result:=false;
+  if keypressed then
+    if readkey='x' then                              {Manual stop of the loop with 'x'-key}
+      result:=true;
 end;
 
 procedure st16car1.DoRun;
 var
+  ErrorMsg: string;
   data, tele: TPayLoad;
-  i, z, ExitStatus: byte;
-  tlz, gps: uint16;
+  i, z: byte;
+  gps: uint16;
   coord: array [0..7] of byte;
   alt: single;
 
 begin
-  exitStatus:=0;                                     {Exit no faults}
+  ErrorMsg:='Stopped - OK';                          {Exit no faults}
   SR24connected:=false;
   z:=0;
-  tlz:=0;
   alt:=0;
-  ActivatePWMChannel('2');                           {Activate both}
-  if PWMstatus>1 then begin
-    for i:=0 to 39 do                                {Load default values}
+  if ActivatePWMChannel(true)>1 then begin           {At least one channel activ}
+    for i:=0 to 39 do                                {Load default values for telemetry}
       tele[i]:=DefTelemetry[i];
     for i:=0 to high(data) do                        {Empty receive buffer}
       data[i]:=0;
     for i:=0 to high(coord) do                       {Empty coords buffer}
       coord[i]:=0;
 
-    ReadSettings(csets);                             {Load common settings}
+    ReadSettings(csets);                             {Load common settings from text file}
     InitServos;                                      {Set up PWM channels}
-    GPIOon;
+    InitGPIO;
     ConnectUART(uartport, UARTspeed, SR24connected);
     if SR24connected then begin
 
@@ -178,70 +182,62 @@ begin
         tele[36]:=17;
         repeat
           sleep(timeout);
-        until UARTCanRead or KeyPressed;
+        until UARTCanRead or IsStop;
       end;
 
-      if UARTCanRead then begin
+      if UARTCanRead then begin                      {ST16 connected}
         tele[36]:=16;
-        repeat
+
+        repeat                                       {Message loop}
           if UARTreadMsg(data) then begin
             ControlServos(data);                     {Servo assignement from settings}
             ControlSwitches(data);
-            inc(z);
+            inc(z);                                  {Telemetry counter}
 
-// This is just to show GPS data from the ST16 on the ST16
-// where usually the data from the drone are seen (Mirroring).
-// This could be removed or commented out
             if data[3]=3 then begin                  {Message type GPS data set}
               for i:=0 to 7 do
                 coord[i]:=data[26+i];                {Store coordinates}
               alt:=GetFloatFromBuf(data, 34);        {Store altitude}
             end;
-            if z>=5 then begin                       {One telemetry per 5 received packages}
-              gps:=0;
-              IntToTelemetry(data, tlz, 4, 2);       {Counter}
-              for i:=0 to 7 do begin
-                tele[i+6]:=coord[i];                 {Mirror coordinates}
-                gps:=gps+Coord[i];                   {Check controller GPS if something >0 is there}
-              end;
+
+            if z>=5 then begin                       {One telemetry msg per 5 received msgs}
               i:=csets[0, 1];
               if (i<GPIOinvalid) and (i>1) and (GetGPIO(i)=GPIOhigh) then
                 tele[38]:=(tele[38] or 1) and $FD;   {Voltage warning 1}
               i:=csets[0, 2];
               if (i<GPIOinvalid) and (i>1) and (GetGPIO(i)=GPIOhigh) then
                 tele[38]:=(tele[38] or 2) and $FE;   {Voltage warning 2}
+
+              gps:=0;
+              for i:=0 to 7 do begin
+                tele[i+6]:=coord[i];                 {Mirror coordinates}
+                gps:=gps+Coord[i];                   {Check controller GPS if something <>0 is there}
+              end;
               IntToTelemetry(tele, AltitudeToInt(alt), 14, 4);  {Mirror Altitude m}
               i:=data[44];                           {nsat}
               tele[36]:=4;                           {Angle w/o GPS, but it means here w/o GPS from RC}
-              if gps>0 then begin
+              if gps<>0 then begin
                 i:=i or $80;                         {GPS of RC aquired}
                 tele[36]:=3;                         {Flight mode}
               end;
               tele[24]:=i;                           {nsat + GPS used}
               UARTsendMsg(tele);
               z:=0;                                  {Reset counter}
-              inc(tlz);                              {Counter for sent packages}
-              if tlz>=65535 then
-                tlz:=0;                              {Reset counter}
             end;
-// End fake telemetry with coordinates
-//          if z>10 then
-//            UARTsendMsg(tele);      {Send default telemetry to avoid error messages on ST16}
-
           end else
-            ExitStatus:=4;                           {no valid message}
-        until KeyPressed;                            {stop program at any key}
+            ErrorMsg:='No valid messages';           {No valid message found}
+        until IsStop;                                {stop program at any key}
 
       end else
-        exitstatus:=3;                               {Cannot read}
+        ErrorMsg:='Cannot read from UART';           {Cannot read from UART}
     end else
-      exitstatus:=2;                                 {not connected}
+      ErrorMsg:='Not connected';                     {UART not connected}
   end else
-    exitstatus:=1;                                   {no PWM channels}
-  DeactivatePWM;
+    ErrorMsg:='No PWM channels';                     {No PWM channels available}
+  DeactivatePWM;                                     {Clean up all the stuff}
   GPIOoff;
   DisconnectUART(SR24connected);
-  writeln(ExitStatusToStr(ExitStatus));
+  writeln(ErrorMsg);
   Terminate;
 end;
 

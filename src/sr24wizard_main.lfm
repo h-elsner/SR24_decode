@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 965
+  Left = 961
   Height = 474
-  Top = 143
+  Top = 48
   Width = 713
   ActiveControl = PageControl1
   Caption = 'Form1'

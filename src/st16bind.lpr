@@ -25,9 +25,6 @@ var
   SR24Connected: boolean;
   i: byte;
 
-const
-  uartport='/dev/ttyAMA0';
-
 begin
   ErrorMsg:='OK done';
   SR24connected:=false;
@@ -41,7 +38,7 @@ begin
     end else
       ErrorMsg:='Cannot write to UART';
   end else
-    ErrorMsg:='Not connected';
+    ErrorMsg:='UART not connected';
   DisconnectUART(SR24connected);
   writeln(ErrorMsg);
   Terminate;
@@ -62,7 +59,7 @@ var
   Application: TMyApplication;
 begin
   Application:=TMyApplication.Create(nil);
-  Application.Title:='My Application';
+  Application.Title:='Bind';
   Application.Run;
   Application.Free;
 end.

@@ -120,6 +120,8 @@ const
   rsValidNR='Valid but not recommended GPIO pin.';
   rsWarnPWM='PWM channels should not assigned to switches.';
   rsGPIO='GPIO';
+  rsNoPins='No GPIO pins assigned.';
+  rsNoPWM='No PWM channels assigned';
   errPinX=' already used. Do you really want to use this pin for multiple purposes?';
   errChanX=' already used. Do you really want to use this channel for multiple purposes?';
   errInvChan='Invalid RC channel number.';
@@ -253,7 +255,7 @@ procedure TForm1.actCheckExecute(Sender: TObject);     {Check consistency of set
 var
   csets: TSettings;
   inlist: TStringList;
-  i, zhl: integer;
+  i, zhl, g: integer;
   k: byte;
   ps, ps2, cs: string;
   charr: array[1..12] of byte;                         {Counter used channels}
@@ -295,7 +297,7 @@ var
   function CheckChannel(idx, spx: byte; mix: boolean=false): string;
   begin
     result:='';                                        {Nothing to worry about}
-    if (csets[idx, spx]>0) and (csets[idx, spx]<13) then begin
+    if (csets[idx, spx]>0) and (csets[idx, spx]<13) then begin   {channel number must be 1-12}
       charr[csets[idx, spx]]:=charr[csets[idx, spx]]+1;
       if (not mix) and (charr[csets[idx, spx]]>1) then
         result:=result+rsWarn+chnr+tab1+IntToStr(csets[idx, spx])+errPinX+LineEnding;
@@ -305,12 +307,13 @@ var
       if (idx<7) and (csets[idx, spx] in switx) then   {Proper channels for servos}
         result:=result+rsHint+'In ST16 standard settings those channels belongs to switches and buttons.'+LineEnding;
     end else
-      result:=result+rsErr+errInvChan+LineEnding;
+      result:=result+rsErr+errInvChan+LineEnding;      {Invalid channel number}
   end;
 
 begin
   mmoInfo.Lines.Clear;
   zhl:=0;
+  g:=0;
   if mmoText.Lines.Count>5 then begin
     mmoInfo.Lines.Add(rsCheck);
     mmoInfo.Lines.Add('');
@@ -387,6 +390,18 @@ begin
             mmoInfo.Lines.Add(ps);
           inc(zhl);
         end;
+
+        for i:=2 to 27 do
+          g:=g+pioarr[i];                              {Number of assigned GPIO pins}
+        if g=0 then begin
+          mmoInfo.Lines.Add(rsHint+rsNoPins);
+          inc(zhl);
+        end;
+        if (pioarr[0]+pioarr[1])=0 then begin          {Number of assigned PWM channels}
+          mmoInfo.Lines.Add(rsHint+rsNoPWM);
+          inc(zhl);
+        end;
+
         if zhl=0 then
           mmoInfo.Lines.Add(rsCheckOK);
       end;

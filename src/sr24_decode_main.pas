@@ -536,13 +536,12 @@ end;
 
 procedure InitServos;                                {Initialize Servos. Only two can get HW PWM channels 0 or 1}
 var
-  i, pio: byte;
+  i: byte;
 
 begin
   for i:= 1 to 6 do begin                            {For all 6 servos}
-    pio:=csets[i, 4];
-    if pio<2 then begin
-      SetPWMChannel(pio, csets[12, 3],
+    if csets[i, 4]<2 then begin
+      SetPWMChannel(csets[i, 4], csets[12, 3],
                     csets[i, 2]*1000,                {Neutral position}
                     (csets[i, 5]=1));
     end;
@@ -563,69 +562,59 @@ end;
 
 procedure GPIOon;                                    {Switch all used GPIO ports to out/0}
 var
-  i, g: byte;
+  i: byte;
 
 begin
-  for i:=1 to 11 do begin
-    g:=csets[i, 4];
-    if (g<notused) and (g>4) then
-      ActivateGPIO(g, 0);
-    g:=csets[i, 5];
-    if (g<notused) and (g>4) then                    {Will also activate GPIO ports pio2}
-      ActivateGPIO(g, 0);
+  for i:=1 to 11 do begin                            {Activate GPIO pins}
+    if ValidGPIOnr(csets[i, 4]) then
+      ActivateGPIO(csets[i, 4], 0);
+    if ValidGPIOnr(csets[i, 5]) then                 {Will also activate GPIO pins gpio2}
+      ActivateGPIO(csets[i, 5], 0);
   end;
 
-  g:=csets[0, 1];                                    {Voltage warning 1}
-  if (g<notused) and (g>4) then
-    ActivateGPIO(g, 1);
-  g:=csets[0, 2];                                    {Voltage warning 2}
-  if (g<notused) and (g>4) then
-    ActivateGPIO(g, 1);
+  if ValidGPIOnr(csets[0, 1]) then                   {Voltage warnings}
+    ActivateGPIO(csets[0, 1], 1);
+  if ValidGPIOnr(csets[0, 2]) then
+    ActivateGPIO(csets[0, 2], 1);
 end;
 
 procedure GPIOoff;                                   {Switch off all used GPIO ports}
 var
-  i, g: byte;
+  i: byte;
 
 begin
   for i:=1 to 11 do begin
-    g:=csets[i, 4];
-    if (g<notused) and (g>4) then
-      DeActivateGPIO(g);
-    g:=csets[i, 5];
-    if (g<notused) and (g>4) then
-      DeActivateGPIO(g);
+    if ValidGPIOnr(csets[i, 4]) then
+      DeActivateGPIO(csets[i, 4]);
+    if ValidGPIOnr(csets[i, 5]) then
+      DeActivateGPIO(csets[i, 5]);
   end;
 
-  g:=csets[0, 1];                                    {Deactivate ports Voltage warnings}
-  if (g<notused) and (g>4) then
-    DeActivateGPIO(g);
-  g:=csets[0, 2];                                    {Deactivate ports Voltage warnings}
-  if (g<notused) and (g>4) then
-    DeActivateGPIO(g);
+  if ValidGPIOnr(csets[0, 1]) then                   {Deactivate ports Voltage warnings}
+    DeActivateGPIO(csets[0, 1]);
+  if ValidGPIOnr(csets[0, 2]) then
+    DeActivateGPIO(csets[0, 2]);
 end;
 
 procedure ControlSwitches(dat: TPayLoad);            {Send switches to GPIO port}
 var
-  i, pio, sw: byte;
+  i, sw: byte;
 
 begin
   for i:=1 to 11 do begin
     sw:=SwitchPos(csets, i, GetChValue(dat, csets[i, 0]));
-    pio:=csets[i, 4];                                {First GPIO port for upper position as ON}
-    if (pio<notused) and (pio>4) then begin
+    if ValidGPIOnr(csets[i, 4]) then begin           {First GPIO port for upper position as ON}
       if sw=1 then
-        SetGPIO(pio, GPIOhigh)
+        SetGPIO(csets[i, 4], GPIOhigh)
       else
-        SetGPIO(pio, GPIOlow);
+        SetGPIO(csets[i, 4], GPIOlow);
     end;
 
-    pio:=csets[i, 5];                                {For 3-way switches use second GPIO, port}
-    if (pio<notused) and (pio>4) then begin
+    if ValidGPIOnr(csets[i, 5]) then begin           {For 3-way switches use second GPIO, port}
       if sw=3 then                                   {Switch in lower position as ON}
-        SetGPIO(pio, GPIOhigh)
+        SetGPIO(csets[i, 5], GPIOhigh)
       else
-        SetGPIO(pio, GPIOlow);
+        SetGPIO(csets[i, 5], GPIOlow);
     end;
   end;
 end;
@@ -655,8 +644,7 @@ begin
   ReadSettings(csets);                               {Load again common settings}
 
   btnClose.Enabled:=false;
-  ActivatePWMChannel('2');                           {Activate both}
-  if PWMstatus>1 then begin
+  if ActivatePWMChannel(true)>1 then begin
     btnClose.Enabled:=false;
     InitServos;                                      {Set up PWM channels}
   end;

@@ -12,6 +12,8 @@
  GPIO:
  https://www.ics.com/blog/gpio-programming-using-sysfs-interface
 
+ Preparations:
+ -------------
  To activate the 2 PWM channels with default pins, add
      dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4
  to /boot/config.txt and reboot.
@@ -20,20 +22,15 @@
  GPIO18 (pin12) PWM0
  GPIO13 (pin33) PWM1
 
-
- check if pwm chip is active:
- cd /sys/class/pwm/pwmchip0/
-
- echo 0 > export
- echo 1 > export (deactivate with echo 0 > unexport)
- There now should be pwm0 and pwm1
+ Check if pwm chip is active:
+  cd /sys/class/pwm/pwmchip0/
 
  Set up to test PWM:
- cd pwm0
- echo 10000 > period    (100kHz)
- echo 5000 > duty_cycle (length pulse --> 1:1)
- echo 1 > enable
-
+  echo 0 > export   (deactivate with echo 0 > unexport)
+  cd pwm0
+  echo 10000 > period    (100kHz)
+  echo 5000 > duty_cycle (length pulse --> 1:1)
+  echo 1 > enable
 }
 
 unit SR24_ctrl;
@@ -73,7 +70,7 @@ const
   GPIOinvalid=28;                                        {GPIOnr must be lower than that}
   GPIOnodat=' ';                                         {Could not read data from GPIO port}
 
-  waitfs=50;                                             {Wait for file system to create GPIO system file}
+  waitfs=100;                                            {Wait for file system to create GPIO system files}
 
 
 type
@@ -81,11 +78,13 @@ type
 
 function  WriteSysFile(filename: string; const value: SysData): boolean;
 function  ReadSysFile(filename: string): char;           {Read '0' or '1' from GPIO}
+function  ValidGPIOnr(pionr: byte): boolean;             {Check if GPIOnr is in range}
 function  ExtractGPIOnr(gpn: string): byte;              {GPIO number from name}
 
-function  ActivatePWMChannel(GPIOnr: string): byte;      {results PWM status after activation}
-function  PWMStatus: byte;                               {0: PWM not activated,
-                                                          3: Channel 0,
+function  ActivatePWMChannel(both: boolean=true): byte;  {results PWM status after activation}
+function  PWMStatus: byte;                               {0: PWM not activated at boot,
+                                                          1: No channel active
+                                                          3: Channel 0 only,
                                                           7: both 0 and 1 active}
 procedure SetPWMChannel(const PWMnr: byte; peri: uint32;
                         cycle: uint64; revers: boolean = true);
@@ -141,6 +140,11 @@ begin
   {$EndIf}
 end;
 
+function ValidGPIOnr(pionr: byte): boolean;              {Check if GPIOnr is in range}
+begin
+  result:=((pionr<GPIOinvalid) and (pionr>1));
+end;
+
 function ExtractGPIOnr(gpn: string): byte;               {GPIO number from name}
 var
   i: integer;
@@ -153,38 +157,28 @@ begin
     if gpn[i] in ziff then
       s:=s+gpn[i];
   i:=StrToInt(s);
-  if (i>4) and (i<GPIOinvalid) then                      {GPIO 5 .. GPIO 27}
+  if ValidGPIOnr(i) then                                 {GPIO 2 .. GPIO 27}
     result:=i;
 end;
 
-function ActivatePWMChannel(GPIOnr: string): byte;       {Activate one (0) or both PWM channels}
-var
-  status: byte;
-
+function ActivatePWMChannel(both: boolean=true): byte;   {Activate one or both PWM channels}
 begin
-  status:=PWMstatus;                                     {Check wich channels are available}
-  case status of
-    1: begin
-         WriteSysFile(pathPWM+fSysStart, GPIOlow);
-         if GPIOnr='2' then                              {Both Hardware PWM channels}
-           WriteSysFile(pathPWM+fSysStart, GPIOhigh);
-       end;
-    3: if GPIOnr='2' then
-         WriteSysFile(pathPWM+fSysStart, GPIOhigh);
-  end;
-  sleep(waitfs);                                         {Wait for file system reaction}
+  WriteSysFile(pathPWM+fSysStart, '0');                  {Activate PWM0 by default}
+  if both then
+    WriteSysFile(pathPWM+fSysStart, '1');                {PWM1 too}
+  sleep(waitfs);                                         {Wait for file is written to GPIO}
   result:=PWMstatus;
 end;
 
-function PWMStatus: byte;                                {result: 0, 3 or 7}
+function PWMStatus: byte;                                {result: 0, 1, 3 or 7}
 begin
-  result:=0;
+  result:=0;                                             {HW-PWM not activated at boot}
   if DirectoryExists(pathPWM) then
-    result:=1;                                           {System file created}
+    result:=1;                                           {1: System file created}
   if DirectoryExists(pathPWM+PWMchan0) then
-    result:=result or 2;                                 {PWM channel 0 OK}
+    result:=result or 2;                                 {3: PWM channel 0 OK}
   if DirectoryExists(pathPWM+PWMchan1) then
-    result:=result or 4;                                 {PWM channel 1 OK}
+    result:=result or 4;                                 {7: PWM channel 0 and 1 OK}
 end;
 
 {Write data to PWM channel: PWM channel 0 or 1, PWM period in µs, cycle in ns, inversed-Default not}
@@ -247,23 +241,22 @@ end;
 
 function ActivateGPIO(GPIOnr, dir: byte): boolean;       {Open GPIO port as Out and Low as default}
 var
-  gpn, dr: string;
+  pionr, dr: string;
 
 begin                                                    {dir=1 .. input, dir=0 .. output}
+  result:=false;
   if dir=1 then
     dr:=keyIn
   else
     dr:=keyOut;
-  if GPIOnr<GPIOinvalid then begin
-    gpn:=IntToStr(GPIOnr);
-    result:=DirectoryExists(pathGPIO+fgpio+gpn);
-    if not result then begin
-      WriteSysFile(pathGPIO+fSysStart, gpn);
-      sleep(waitfs);
-    end;
-    if DirectoryExists(pathGPIO+fgpio+gpn) then begin
-      WriteSysFile(pathGPIO+fgpio+gpn+fDirection, dr);
-      SetGPIO(GPIOnr);                                   {Send default 0}
+  if GPIOnr<GPIOinvalid then begin                       {Activate pins up to GPIO27}
+    pionr:=IntToStr(GPIOnr);
+    WriteSysFile(pathGPIO+fSysStart, pionr);
+    sleep(waitfs);                                       {Wait for directory is written to GPIO}
+    if DirectoryExists(pathGPIO+fgpio+pionr) then begin
+      WriteSysFile(pathGPIO+fgpio+pionr+fDirection, dr);
+      if dir<>1 then
+        SetGPIO(GPIOnr, '0');                            {Send default 0}
       result:=true;
     end;
   end;
