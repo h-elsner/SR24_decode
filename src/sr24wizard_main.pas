@@ -128,6 +128,7 @@ const
   errPWMset='PWM channel must not assigned here.';
   rsCheckOK='Settings seems to be OK. No inconsistency found.';
   rsDefaultSet='OK, those are the default settings.';
+  rsLines='A settings file should have more than one line. No check done.';
   tab1=' ';
 
   servx=[1..4, 7, 8];                                  {Valid channel numbers for servos}
@@ -325,86 +326,89 @@ begin
       pioarr[i]:=0;
     try
       inlist.Assign(mmoText.Lines);
-      csets:=ReadSettingsList(inlist);
-      if CompareToDefault(csets) then begin
-        mmoInfo.Lines.Add(rsDefaultSet)
-      end else begin
-        ps:=CheckGPIO(0, 1, false);                    {Voltage warning 1}
-        if ps<>'' then begin
-          mmoInfo.Lines.Add(warn1);
-          mmoInfo.Lines.Add(ps);
-          inc(zhl);
-        end;
-        ps:=CheckGPIO(0, 2, false);                    {Voltage warning 2}
-        if ps<>'' then begin
-          mmoInfo.Lines.Add(warn2);
-          mmoInfo.Lines.Add(ps);
-          inc(zhl);
-        end;
-
-        for i:=1 to 6 do begin                         {Check settings for servos}
-          cs:=CheckChannel(i, 0, false);
-          ps:=CheckGPIO(i, 4, true);
-          ps2:='';
-          k:=ValidGPIO(csets[i, 4]);
-          case k of                                    {Check GPIOnum 2 depending on GPIO assigned}
-            1, 2: ps2:=CheckGPIO(i, 5, false);
-            3: if (csets[i, 5]>1) then
-                 ps2:=rsErr+pio2+' must not assigned to PWM channels. Use default 0 or 1 for PWM reversed.';
-          end;
-          if (cs<>'') or (ps<>'') or (ps2<>'') then begin
-            mmoInfo.Lines.Add(svx+tab1+IntToStr(i));
-            if cs<>'' then
-              mmoInfo.Lines.Add(cs);
-            if ps<>'' then
-              mmoInfo.Lines.Add(ps);
-            if ps2<>'' then
-              mmoInfo.Lines.Add(ps2);
-            inc(zhl);
-          end;
-        end;
-
-        for i:=7 to 11 do begin                        {Check settings for switches}
-          cs:=CheckChannel(i, 0);
-          ps:=CheckGPIO(i, 4, false);
-          ps2:=CheckGPIO(i, 5, false);                 {GPIOnum 2}
-          if (cs<>'') or (ps<>'') or (ps2<>'') then begin
-            mmoInfo.Lines.Add(swx+tab1+IntToStr(i-6));
-            if cs<>'' then
-              mmoInfo.Lines.Add(cs);
-            if ps<>'' then
-              mmoInfo.Lines.Add(ps);
-            if ps2<>'' then
-              mmoInfo.Lines.Add(ps2);
-            inc(zhl);
-          end;
-        end;
-
-        ps:=CheckGPIO(12, 2, false);                   {Start/stop}
-        cs:=CheckChannel(12, 0, true);
-        if (ps<>'') or (cs<>'') then begin
-          mmoInfo.Lines.Add(abtn);
-          if cs<>'' then
-            mmoInfo.Lines.Add(cs);
-          if ps<>'' then
+      if inlist.Count>1 then begin
+        csets:=ReadSettingsList(inlist);
+        if CompareToDefault(csets) then begin
+          mmoInfo.Lines.Add(rsDefaultSet)
+        end else begin
+          ps:=CheckGPIO(0, 1, false);                  {Voltage warning 1}
+          if ps<>'' then begin
+            mmoInfo.Lines.Add(warn1);
             mmoInfo.Lines.Add(ps);
-          inc(zhl);
-        end;
+            inc(zhl);
+          end;
+          ps:=CheckGPIO(0, 2, false);                  {Voltage warning 2}
+          if ps<>'' then begin
+            mmoInfo.Lines.Add(warn2);
+            mmoInfo.Lines.Add(ps);
+            inc(zhl);
+          end;
 
-        for i:=2 to 27 do
-          g:=g+pioarr[i];                              {Number of assigned GPIO pins}
-        if g=0 then begin
-          mmoInfo.Lines.Add(rsHint+rsNoPins);
-          inc(zhl);
-        end;
-        if (pioarr[0]+pioarr[1])=0 then begin          {Number of assigned PWM channels}
-          mmoInfo.Lines.Add(rsHint+rsNoPWM);
-          inc(zhl);
-        end;
+          for i:=1 to 6 do begin                       {Check settings for servos}
+            cs:=CheckChannel(i, 0, false);
+            ps:=CheckGPIO(i, 4, true);
+            ps2:='';
+            k:=ValidGPIO(csets[i, 4]);
+            case k of                                  {Check GPIOnum 2 depending on GPIO assigned}
+              1, 2: ps2:=CheckGPIO(i, 5, false);
+              3: if (csets[i, 5]>1) then
+                   ps2:=rsErr+pio2+' must not assigned to PWM channels. Use default 0 or 1 for PWM reversed.';
+            end;
+            if (cs<>'') or (ps<>'') or (ps2<>'') then begin
+              mmoInfo.Lines.Add(svx+tab1+IntToStr(i));
+              if cs<>'' then
+                mmoInfo.Lines.Add(cs);
+              if ps<>'' then
+                mmoInfo.Lines.Add(ps);
+              if ps2<>'' then
+                mmoInfo.Lines.Add(ps2);
+              inc(zhl);
+            end;
+          end;
 
-        if zhl=0 then
-          mmoInfo.Lines.Add(rsCheckOK);
-      end;
+          for i:=7 to 11 do begin                      {Check settings for switches}
+            cs:=CheckChannel(i, 0);
+            ps:=CheckGPIO(i, 4, false);
+            ps2:=CheckGPIO(i, 5, false);               {GPIOnum 2}
+            if (cs<>'') or (ps<>'') or (ps2<>'') then begin
+              mmoInfo.Lines.Add(swx+tab1+IntToStr(i-6));
+              if cs<>'' then
+                mmoInfo.Lines.Add(cs);
+              if ps<>'' then
+                mmoInfo.Lines.Add(ps);
+              if ps2<>'' then
+                mmoInfo.Lines.Add(ps2);
+              inc(zhl);
+            end;
+          end;
+
+          ps:=CheckGPIO(12, 2, false);                 {Start/stop}
+          cs:=CheckChannel(12, 0, true);
+          if (ps<>'') or (cs<>'') then begin
+            mmoInfo.Lines.Add(abtn);
+            if cs<>'' then
+              mmoInfo.Lines.Add(cs);
+            if ps<>'' then
+              mmoInfo.Lines.Add(ps);
+            inc(zhl);
+          end;
+
+          for i:=2 to 27 do
+            g:=g+pioarr[i];                            {Number of assigned GPIO pins}
+          if g=0 then begin
+            mmoInfo.Lines.Add(rsHint+rsNoPins);
+            inc(zhl);
+          end;
+          if (pioarr[0]+pioarr[1])=0 then begin        {Number of assigned PWM channels}
+            mmoInfo.Lines.Add(rsHint+rsNoPWM);
+            inc(zhl);
+          end;
+
+          if zhl=0 then
+            mmoInfo.Lines.Add(rsCheckOK);
+        end;
+      end else
+        mmoInfo.Lines.Add(rsLines);                    {Not enough lines in file}
     finally
       inlist.Free;
       Screen.Cursor:=crDefault;
@@ -468,7 +472,7 @@ end;
 
 procedure TForm1.actOpenExecute(Sender: TObject);      {Open settings file}
 begin
-  if Opendialog.Execute then
+  if OpenDialog.Execute then
     mmoText.Lines.LoadFromFile(OpenDialog.FileName);
 end;
 
@@ -479,8 +483,18 @@ begin
 end;
 
 procedure TForm1.actSaveExecute(Sender: TObject);      {Save settings}
+var
+  inlist: TStringList;
+
 begin
-  mmoText.Lines.SaveToFile(OpenDialog.FileName);
+  inlist:=TStringList.Create;
+  try
+    inlist.LoadFromFile(OpenDialog.FileName);
+    inlist.SaveToFile(ChangeFileExt(OpenDialog.FileName, '.bak'));
+    mmoText.Lines.SaveToFile(OpenDialog.FileName);
+  finally
+    inlist.Free;
+  end;
 end;
 
 procedure TForm1.cbxPortChange(Sender: TObject);       {select UART port}

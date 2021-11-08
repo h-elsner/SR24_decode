@@ -261,7 +261,7 @@ var
 
 begin
   result:=DefaultSettings;                              {Fill with defaults}
-  if inlist.Count>10 then begin
+  if inlist.Count>0 then begin
     for i:=0 to inlist.Count-1 do begin                 {Read the settings file line by line}
       s:=trim(inlist[i]);
       if (s<>'') and (s[1]<>comment) then begin         {Skip comments}
