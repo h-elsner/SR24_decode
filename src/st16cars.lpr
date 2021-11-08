@@ -46,7 +46,12 @@ var
   SR24Connected: boolean;
   csets: TSettings;
 
-{ st16car1 }
+const
+  ch='Ch';
+  dgpio=': GPIO';
+  tr='  ';
+
+  { st16car1 }
 
 procedure InitGPIO;                                  {Switch all used GPIO pins to out/0}
 var
@@ -56,22 +61,23 @@ begin
   for i:=1 to 11 do begin                            {For all servos and switches}
     if ValidGPIOnr(csets[i, 4]) then begin           {Activate GPIOnr pins}
       ActivateGPIO(csets[i, 4], 0);                  {As output}
-      writeln('Ch', csets[i, 0], ': GPIO', csets[i, 4]); {Info about settings in use}
+      write(ch, csets[i, 0], dgpio, csets[i, 4], tr); {Info about settings in use}
     end;
     if ValidGPIOnr(csets[i, 5]) then begin           {Also activate GPIOnr2 pins}
       ActivateGPIO(csets[i, 5], 0);
-      writeln('Ch', csets[i, 0], ': GPIO', csets[i, 5]);
+      write(ch, csets[i, 0], dgpio, csets[i, 5], tr);
     end;
   end;
-
+  writeln;
   if ValidGPIOnr(csets[0, 1]) then begin
     ActivateGPIO(csets[0, 1], 1);                    {As input}
-    writeln('Warn1: GPIO', csets[i, 5]);             {Info about settings in use}
+    write('Warn1', dgpio, csets[i, 5], tr);
   end;
   if ValidGPIOnr(csets[0, 2]) then begin
     ActivateGPIO(csets[0, 2], 1);
-    writeln('Warn2: GPIO', csets[i, 5]);
+    write('Warn2', dgpio, csets[i, 5]);
   end;
+  writeln;
 end;
 
 procedure GPIOoff;                                   {Switch off all used GPIO ports}
@@ -104,9 +110,10 @@ begin
       SetPWMChannel(pio, csets[12, 3],
                     csets[i, 2]*1000,                {Neutral position}
                     (csets[i, 5]=1));
-      write('Ch', csets[i, 0], ': PWM',pio);         {Info about settings in use}
+      write(ch, csets[i, 0], ': PWM',pio, tr);       {Info about settings in use}
     end;
   end;
+  writeln;
 end;
 
 procedure ControlServos(dat: TPayLoad);              {Write pulse duration to PWM}
@@ -160,7 +167,7 @@ var
   alt: single;
 
 begin
-  ErrorMsg:='Stopped - OK';                          {Exit no faults}
+  ErrorMsg:='OK';                                    {Exit no faults}
   SR24connected:=false;
   z:=0;
   alt:=0;
@@ -202,10 +209,10 @@ begin
 
             if z>=5 then begin                       {One telemetry msg per 5 received msgs}
               i:=csets[0, 1];
-              if (i<GPIOinvalid) and (i>1) and (GetGPIO(i)=GPIOhigh) then
+              if ValidGPIOnr(i) and (GetGPIO(i)=GPIOhigh) then
                 tele[38]:=(tele[38] or 1) and $FD;   {Voltage warning 1}
               i:=csets[0, 2];
-              if (i<GPIOinvalid) and (i>1) and (GetGPIO(i)=GPIOhigh) then
+              if ValidGPIOnr(i) and (GetGPIO(i)=GPIOhigh) then
                 tele[38]:=(tele[38] or 2) and $FE;   {Voltage warning 2}
 
               gps:=0;
