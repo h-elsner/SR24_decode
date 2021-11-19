@@ -26,7 +26,9 @@ const
   remotegps='RemoteGPS';
   csvext='.csv';
 
-  sep=',';
+  sep=';';
+  cff='0.000000';
+  aff='0.00';
   ziffs=['0'..'9'];                                    {Valid digits in a string}
 
 var
@@ -37,6 +39,10 @@ function  GetFlightLogDirs(idx: byte): string;         {Get names of log root an
 function  MakeFlightLogDir: boolean;                   {Create root path for logfiles}
 function  GetLogNumber: string;                        {Provides tail of next log file and create it}
 function  GetTimeStamp: string;                        {Time stamp in Yuneec log format}
+
+function  GetNumSat(n: byte): byte;                     {Get number of sats from RC}
+function  GetFixType(n: byte): byte;                    {Get GPS fix type}
+function  GetGPSused(n: byte): boolean;                 {Get GPS used flag}
 
 
 implementation
@@ -152,6 +158,21 @@ end;
 function GetTimeStamp: string;                         {Time stamp in Yuneec log format}
 begin
   result:=FormatDateTime('YYYYMMDD hh:nn:ss:zzz', now);
+end;
+
+function GetNumSat(n: byte): byte;                      {Number of satellites}
+begin
+  result:=(n and $1F);
+end;
+
+function GetFixType(n: byte): byte;                     {FixType in nsat}
+begin
+  result:=(n shr 5) and 3;
+end;
+
+function GetGPSused(n: byte): boolean;                  {GPS used in nsat}
+begin
+  result:=(n and $80)<>0;
 end;
 
 end.

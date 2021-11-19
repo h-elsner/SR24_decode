@@ -20,7 +20,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   ComCtrls, Spin, MKnob, switches, AdvLed,
-  SR24_dec, SR24_ctrl, SR24_chsets;
+  SR24_dec, SR24_ctrl, SR24_chsets, SR24_log;
 
 type
 
@@ -28,9 +28,11 @@ type
 
   TForm1 = class(TForm)
     btnBind: TButton;
+    btnLog: TButton;
     cbxUARTspeed: TComboBox;
     cgIMU: TCheckGroup;
     cgPCS: TCheckGroup;
+    Edit1: TEdit;
     Label17: TLabel;
     lblAmp: TLabel;
     lblStatus1: TLabel;
@@ -122,6 +124,7 @@ type
     procedure btnConnectClick(Sender: TObject);
     procedure btnListenClick(Sender: TObject);
     procedure btnListenRawClick(Sender: TObject);
+    procedure btnLogClick(Sender: TObject);
     procedure btnSendClick(Sender: TObject);
     procedure btnStopClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
@@ -165,12 +168,10 @@ const
   rsMot='Motor status';
   rsConnected='Connected';
   rsDisconnected='Disconnected';
-  sep=';';
-  cff='0.000000';
-  aff='0.0';
   tab1=' ';
   dpkt=': ';
   capError='Error flags';
+  VehicleID='20';                            {q500log2kml: 20..29 car, 30..39 boat}
 
 implementation
 
@@ -300,8 +301,8 @@ begin
   result:=ChannelValues(data, 12);                                   {12 channels}
   if GetGPSdata(data, lat, lon, alt) then
     result:=result+
-            FormatFloat(cff, lat)+sep+
             FormatFloat(cff, lon)+sep+
+            FormatFloat(cff, lat)+sep+
             FormatFloat(aff, alt)+sep+
             FormatFloat(aff, GetIntFromBuf(data, 38, 2)/10)+sep+     {acc}
             FormatFloat(aff, GetIntFromBuf(data, 40, 2)/100)+sep+    {speed}
@@ -424,6 +425,26 @@ begin
   ListenRaw;
   if btnListen.Tag>100 then
     btnListen.Tag:=1;
+end;
+
+procedure TForm1.btnLogClick(Sender: TObject);       {Just to test log functions}
+var
+  f: TextFile;
+  fnr: string;
+  i: integer;
+
+begin
+  if makeflightlogdir then begin                     {Create FlightLog dirs}
+    fnr:=getlognumber;                               {Find next log file}
+    AssignFile(f, GetFlightLogDirs(1)+telemetry+fnr);
+    try
+      append(f);
+      for i:=1 to 10 do                              {Append to the log files}
+        writeln(f, gettimestamp+sep+IntToStr(i)+sep);
+    finally
+      CloseFile(f);
+    end;
+  end;
 end;
 
 function StrToCoord(coord: string): single;
@@ -560,6 +581,19 @@ begin
   end;
 end;
 
+function GetPWMval(dat: TPayLoad; pwmch: byte=0): integer;   {Get PWM value for speed}
+var
+  i, pio: byte;
+
+begin
+  result:=stkntrl;
+  for i:=1 to 6 do begin                             {For all 6 servos}
+    pio:=csets[i, 4];
+    if (pio<2) and (pio=pwmch) then
+      result:=GetChValue(dat, csets[i, 0]);
+  end;
+end;
+
 procedure GPIOon;                                    {Switch all used GPIO ports to out/0}
 var
   i: byte;
@@ -625,8 +659,21 @@ var
   i, z: byte;
   tlz, gps: uint16;
   coord: array [0..7] of byte;
-  alt: single;
+  lat, lon, alt, tas: single;
   thr, roll, pitch, yaw, pan: uint16;
+  logfile1: TextFile;
+  loglist1: TStringList;
+  fnr, csvstr: string;
+
+  procedure WriteLogBlock;                           {Write a whole block from buffer to file}
+  var
+    i: integer;
+
+  begin
+    for i:=0 to loglist1.Count-1 do
+      writeln(logfile1, loglist1[i]);
+    loglist1.Clear;                                  {Empty log buffer}
+  end;
 
 begin
   btnStop.Tag:=0;
@@ -640,7 +687,6 @@ begin
     data[i]:=0;
   for i:=0 to high(coord) do                         {Empty receive buffer}
     coord[i]:=0;
-  alt:=0;
   ReadSettings(csets);                               {Load again common settings}
 
   btnClose.Enabled:=false;
@@ -653,109 +699,149 @@ begin
   if UARTCanRead then begin
     GPIOon;
     lblStatus.Caption:=rsConnected;
-    repeat
-      if UARTreadMsg(data) then begin
-        if data[3]=3 then begin                      {GPS data set}
-          for i:=0 to 7 do
-            coord[i]:=data[26+i];                    {Store coordinates}
-          alt:=GetFloatFromBuf(data, 34);            {Store altitude}
-        end;
-        thr:=  GetChValue(data, 1);
-        roll:= GetChValue(data, 2);
-        pitch:=GetChValue(data, 3);
-        yaw:=  GetChValue(data, 4);
-
-        barLup.Position:=thr-stkntrl;
-        barLdown.Position:=stkntrl-thr;
-        barRLeft.Position:=roll-stkntrl;
-        barRright.Position:=stkntrl-roll;
-        barLleft.Position:=yaw-stkntrl;
-        barLright.Position:=stkntrl-yaw;
-        barRup.Position:=pitch-stkntrl;
-        barRdown.Position:=stkntrl-pitch;
-
-        lblThrVal.Caption:=IntToStr(StkToPWM(csets, 1, thr) div 1000)+
-                           '='+IntToStr(StkToProz(thr))+'%';
-
-        lblPitchVal.Caption:=IntToStr(StkToPWM(csets, 3, pitch) div 1000)+
-                           '='+IntToStr(StkToProz(pitch))+'%';
-
-        lblRollVal.Caption:=IntToStr(StkToPWM(csets, 2, roll) div 1000)+
-                            '='+IntToStr(StkToProz(roll))+'%';
-
-        lblYawVal.Caption:=IntToStr(StkToPWM(csets, 4, yaw) div 1000)+
-                           '='+IntToStr(StkToProz(yaw))+'%';
-
-        if thr=0 then begin                          {Mixed button -  start/stop}
-          ledStop.State:=lsOn;
-          barLdown.Position:=0;
-
-        end else
-          ledStop.State:=lsDisabled;
-
-        pbTilt.Position:=GetChValue(data, 7);        {Slider}
-        pan:=GetChValue(data, 8);
-        mPan.Position:=stkup-pan;                    {Knob}
-        lblPanVal.Caption:=IntToStr(StkToPWM(csets, 6, pan) div 1000)+
-                           '='+IntToStr(StkToProz(pan))+'%';
-        ControlServos(data);                         {Servo assignement from settings}
-        ControlSwitches(data);
-        case GetChValue(data, 10) of                 {Example switch - Panmode}
-          stkdown: lblPanMode.Caption:='Follow mode';
-          m45val:  lblPanMode.Caption:='Team mode';
-          m40val:  lblPanMode.Caption:='Follow pan controllable';
-          stkup:   lblPanMode.Caption:='Global mode';
-        end;
-        case GetChValue(data, 11) of                 {Gear Switch}
-          stkmin: swGear.Checked:=false;             {0 - up}
-          stkmax: swGear.Checked:=true;              {4095 - down}
-        end;
-        case GetChValue(data, 12) of                 {Example Push button}
-          stkmin: ledAux.State:=lsOn;                {Aux on}
-          stkmax: ledAux.State:=lsDisabled;          {Aux off}
-        end;
-        inc(z);
-
-        if z>=4 then begin                           {One telemetry per 5 received packages}
-          gps:=0;
-          IntToTelemetry(data, tlz, 4, 2);           {Counter}
-          for i:=0 to 7 do begin
-            tele[i+6]:=coord[i];                     {Mirror coordinates}
-            gps:=gps+Coord[i];                       {Check controller GPS}
+    if csets[12, 5]>0 then begin                     {Logging enabled, preparations}
+      MakeFlightlogDir;
+      fnr:=getlognumber;                             {Find next log file}
+      loglist1:=TStringList.Create;                  {Buffer for csv strings telemetry}
+      AssignFile(logfile1, GetFlightLogDirs(1)+telemetry+fnr);
+      append(logfile1);
+    end;
+    try
+      repeat
+        if UARTreadMsg(data) then begin
+          alt:=0;
+          lat:=0;
+          lon:=0;
+          if data[3]=3 then begin                    {GPS data set}
+            for i:=0 to 7 do
+              coord[i]:=data[26+i];                  {Store coordinates}
+            GetGPSdata(data, lat, lon, alt);
           end;
+          thr:=  GetChValue(data, 1);
+          roll:= GetChValue(data, 2);
+          pitch:=GetChValue(data, 3);
+          yaw:=  GetChValue(data, 4);
 
-          i:=csets[0, 1];
-          if (i<notused) and (i>4) and (GetGPIO(i)=GPIOhigh) then
-            tele[38]:=(tele[38] or 1) and $FD;       {Voltage warning 1}
-          i:=csets[0, 2];
-          if (i<notused) and (i>4) and (GetGPIO(i)=GPIOhigh) then
-            tele[38]:=(tele[38] or 2) and $FE;       {Voltage warning 2}
+          barLup.Position:=thr-stkntrl;
+          barLdown.Position:=stkntrl-thr;
+          barRLeft.Position:=roll-stkntrl;
+          barRright.Position:=stkntrl-roll;
+          barLleft.Position:=yaw-stkntrl;
+          barLright.Position:=stkntrl-yaw;
+          barRup.Position:=pitch-stkntrl;
+          barRdown.Position:=stkntrl-pitch;
 
-          IntToTelemetry(tele, AltitudeToInt(alt), 14, 4);  {Mirror Altitude m}
-          pbRSSI.Position:=GetRSSI(data);            {Show RSSI level}
-          lblRSSIval.Caption:=IntToStr(data[6])+'='+IntToStr(GetRSSI(data))+'%';
-          case GetChValue(data, 5) of
-            stkdown: tele[36]:=13;                   {683 - RTH coming}
-            stkntrl: tele[36]:=3;                    {2048 - Angle mode}
-            stkup:   tele[36]:=6;                    {3412 - Smart}
+          lblThrVal.Caption:=IntToStr(StkToPWM(csets, 1, thr) div 1000)+
+                             '='+IntToStr(StkToProz(thr))+'%';
+
+          lblPitchVal.Caption:=IntToStr(StkToPWM(csets, 3, pitch) div 1000)+
+                             '='+IntToStr(StkToProz(pitch))+'%';
+
+          lblRollVal.Caption:=IntToStr(StkToPWM(csets, 2, roll) div 1000)+
+                              '='+IntToStr(StkToProz(roll))+'%';
+
+          lblYawVal.Caption:=IntToStr(StkToPWM(csets, 4, yaw) div 1000)+
+                             '='+IntToStr(StkToProz(yaw))+'%';
+
+          if thr=0 then begin                        {Mixed button -  start/stop}
+            ledStop.State:=lsOn;
+            barLdown.Position:=0;
+
+          end else
+            ledStop.State:=lsDisabled;
+
+          pbTilt.Position:=GetChValue(data, 7);      {Slider}
+          pan:=GetChValue(data, 8);
+          mPan.Position:=stkup-pan;                  {Knob}
+          lblPanVal.Caption:=IntToStr(StkToPWM(csets, 6, pan) div 1000)+
+                             '='+IntToStr(StkToProz(pan))+'%';
+          ControlServos(data);                       {Servo assignement from settings}
+          ControlSwitches(data);
+          case GetChValue(data, 10) of               {Example switch - Panmode}
+            stkdown: lblPanMode.Caption:='Follow mode';
+            m45val:  lblPanMode.Caption:='Team mode';
+            m40val:  lblPanMode.Caption:='Follow pan controllable';
+            stkup:   lblPanMode.Caption:='Global mode';
           end;
-          if thr=0 then
-            tele[36]:=16;                            {Back to Ready if stop button is pressed}
-          i:=data[44];                               {nsat}
-          if gps>0 then
-            i:=i or $80;                             {GPS aquired}
-          tele[24]:=i;                               {nsat + GPS used}
-          UARTsendMsg(tele);
-          z:=0;
-          inc(tlz);                                  {Counter for sent packages}
-          if tlz>=65535 then
-            tlz:=0;
+          case GetChValue(data, 11) of               {Gear Switch}
+            stkmin: swGear.Checked:=false;           {0 - up}
+            stkmax: swGear.Checked:=true;            {4095 - down}
+          end;
+          case GetChValue(data, 12) of               {Example Push button}
+            stkmin: ledAux.State:=lsOn;              {Aux on}
+            stkmax: ledAux.State:=lsDisabled;        {Aux off}
+          end;
+          inc(z);
+
+          if z>=4 then begin                         {One telemetry per 5 received packages}
+            gps:=0;
+            IntToTelemetry(data, tlz, 4, 2);         {Counter}
+            for i:=0 to 7 do begin
+              tele[i+6]:=coord[i];                   {Mirror coordinates}
+              gps:=gps+Coord[i];                     {Check controller GPS}
+            end;
+
+            i:=csets[0, 1];
+            if (i<notused) and (i>4) and (GetGPIO(i)=GPIOhigh) then
+              tele[38]:=(tele[38] or 1) and $FD;     {Voltage warning 1}
+            i:=csets[0, 2];
+            if (i<notused) and (i>4) and (GetGPIO(i)=GPIOhigh) then
+              tele[38]:=(tele[38] or 2) and $FE;     {Voltage warning 2}
+
+            IntToTelemetry(tele, AltitudeToInt(alt), 14, 4);  {Mirror Altitude m}
+            pbRSSI.Position:=GetRSSI(data);          {Show RSSI level}
+            lblRSSIval.Caption:=IntToStr(data[6])+'='+IntToStr(GetRSSI(data))+'%';
+            case GetChValue(data, 5) of
+              stkdown: tele[36]:=13;                 {683 - RTH coming}
+              stkntrl: tele[36]:=3;                  {2048 - Angle mode}
+              stkup:   tele[36]:=6;                  {3412 - Smart}
+            end;
+            if thr=0 then
+              tele[36]:=16;                          {Back to Ready if stop button is pressed}
+            i:=data[44];                             {nsat}
+            if gps>0 then
+              i:=i or $80;                           {GPS aquired}
+            tele[24]:=i;                             {nsat + GPS used}
+            UARTsendMsg(tele);
+            z:=0;
+            inc(tlz);                                {Counter for sent packages}
+            if tlz>=65535 then
+              tlz:=0;
+            if csets[12, 5]>0 then begin             {Logging enabled, read telemetry}
+              tas:=(GetPWMval(data, 0)-stkntrl)/csets[0, 3];     {Value PWM0 - neutral div corrction value for speed}
+              csvstr:=GetTimeStamp+sep+
+                      IntToStr(pbRSSI.Position)+sep+'0'+sep+'0'+sep+        {RSSI, V, A}
+                      FormatFloat(aff, alt)+sep+                            {Altitude}
+                      FormatFloat(cff, lat)+sep+FormatFloat(cff, lon)+sep+  {lat, lon}
+                      FormatFloat(aff, tas)+sep;                            {tas from PWM0}
+              if gps>0 then
+                csvstr:=csvstr+'true'+sep
+              else
+                csvstr:=csvstr+'false'+sep;                                 {gps_used}
+              csvstr:=csvstr+IntToStr(GetFixType(data[44]))+sep+
+                             IntToStr(GetNumSat(data[44]))+sep+
+              '0,0,0'+sep;                                                  {roll, pitch, yaw}
+              for i:=0 to 3 do                                              {Status bytes}
+                csvstr:=csvstr+IntToStr(tele[i+33])+sep;
+              csvstr:=csvstr+'0'+sep+VehicleID+sep+IntToStr(tele[38])+sep+  {GPS_status, v_type, error_flags}
+                      FormatFloat('0.0', GetIntFromBuf(data, 38, 2)/20);    {gps_accH from accuracy}
+
+              loglist1.Add(csvstr);
+            end;
+            if loglist1.Count>500 then               {Buffer to file}
+              WriteLogBlock;
+          end;
+          Application.ProcessMessages;
         end;
-        Application.ProcessMessages;
+      until btnStop.Tag>0;                           {Listen until Stop}
+      if loglist1.Count>0 then                       {Rest of buffer to file}
+        WriteLogBlock;
+    finally
+      if csets[12, 5]>0 then begin                   {Logging enabled, cleanup}
+        loglist1.Free;
+        CloseFile(logfile1);
       end;
-    until btnStop.Tag>0;                              {Listen until Stop}
-{Console: repeat ch:=ReadKey; until ch=#27; (ESC) }
-
+    end;
   end else
     lblStatus.Caption:=rsNoData;
   sr24Discon;

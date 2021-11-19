@@ -60,10 +60,10 @@ const
   swx= 'Switch';
   abtn='Start/stop';                                    {Start button mixed in channel x}
 
-  voltid='Voltage';
+  voltID='Voltage';
   warn1= 'Warn1';
   warn2= 'Warn2';
-  aux3=  'Aux 3';
+  tasID= 'Speed';
   aux4=  'Aux 4';
   aux5=  'Aux 5';
   pwmcycle='PWM cycle';
@@ -89,8 +89,8 @@ const
   lzch=   ' ';
   notused=88;                                           {Set as GPIOnr for unused channels}
 
-  DefaultSettings: TSettings =  {Correction factors for analog input: voltage, GPIOnr Warn1, GPIOnr Warn2, Aux3-Aux5}
-                                ((1000, 88, 88, 1000, 1000, 1000),
+  DefaultSettings: TSettings =  {Correction factors for analog input: voltage, GPIOnr Warn1, GPIOnr Warn2, Speed, Aux4, Aux5}
+                                ((1000, 88, 88, 1, 1000, 1000),
                                 {6 servos: channel, min, neutral, max, GPIOnr, PWM reverted (1) or GPIOnr2}
                                 (1, 683, 2048, 3412, notused, 0), (2, 1100, 1500, 1900, 1, 0),
                                 (3, 1100, 1500, 1900, 0, 0), (4, 683, 2048, 3412, 23, 24),
@@ -173,8 +173,8 @@ begin
   liste.Add('');
 
   liste.Add(comment+' Correction factor');
-  liste.Add(voltid+lzch+assgn+lzch+IntToStr(sets[0, 0]));    {Voltage}
-  liste.Add(aux3+lzch+assgn+lzch+IntToStr(sets[0, 3]));      {Aux 1 - Aux3}
+  liste.Add(voltID+lzch+assgn+lzch+IntToStr(sets[0, 0]));    {Voltage}
+  liste.Add(tasID+lzch+assgn+lzch+IntToStr(sets[0, 3]));     {PWM to TAS}
   liste.Add(aux4+lzch+assgn+lzch+IntToStr(sets[0, 4]));
   liste.Add(aux5+lzch+assgn+lzch+IntToStr(sets[0, 5]));
   liste.Add('');
@@ -285,7 +285,7 @@ begin
             result[0, 2]:=w;
             Continue;
           end;
-          if TryStrToInt(GetIDvalue(s, aux3), w) then begin
+          if TryStrToInt(GetIDvalue(s, tasID), w) then begin
             result[0, 3]:=w;
             Continue;
           end;
@@ -457,7 +457,7 @@ var
   v: integer;
 
 begin
-  result:=0;                                            {0 will beread as 5V}
+  result:=0;                                            {0 will be read as 5V}
   v:=round(volt*sets[0, 0]/100)-50;                     {Voltage in dV}
   if (v>0) and (v<256) then                             {Voltage between 5 and 25.5V}
     result:=v;

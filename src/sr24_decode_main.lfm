@@ -1,8 +1,9 @@
 object Form1: TForm1
-  Left = 858
+  Left = 850
   Height = 537
-  Top = 175
+  Top = 34
   Width = 820
+  ActiveControl = cbxUARTname
   Caption = 'Form1'
   ClientHeight = 537
   ClientWidth = 820
@@ -918,6 +919,23 @@ object Form1: TForm1
         Width = 66
         Caption = 'Pan Mode'
         ParentColor = False
+      end
+      object btnLog: TButton
+        Left = 312
+        Height = 25
+        Top = 328
+        Width = 160
+        Caption = 'Logging'
+        OnClick = btnLogClick
+        TabOrder = 7
+      end
+      object Edit1: TEdit
+        Left = 16
+        Height = 30
+        Top = 368
+        Width = 744
+        TabOrder = 8
+        Text = 'Edit1'
       end
     end
   end

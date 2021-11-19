@@ -126,9 +126,6 @@ function  CurrentToByte(a: single): byte;               {Convert ampere to byte}
 function  CoordToInt(coord: single): int32;             {Convert coordinates to integer represetation}
 function  AltitudeToInt(alt: single): int32;            {Convert Altitude, 4 byte}
 function  SpeedToInt(alt: single): int16;               {Speed 2 byte}
-function  GetNumSat(n: byte): byte;                     {Get number of sats from RC}
-function  GetFixType(n: byte): byte;                    {Get GPS fix type}
-function  GetGPSused(n: byte): boolean;                 {Get GPS used flag}
 function  GetRSSI(data: TPayLoad): int16;               {Get receiver RSSI in %}
 
 implementation
@@ -363,26 +360,9 @@ begin
   result:=round(alt*100);
 end;
 
-function GetNumSat(n: byte): byte;                      {Number of satellites}
-begin
-  result:=(n and $1F);
-end;
-
-function GetFixType(n: byte): byte;                     {FixType in nsat}
-begin
-  result:=(n shr 5) and 3;
-end;
-
-function GetGPSused(n: byte): boolean;                  {GPS used in nsat}
-begin
-  result:=(n and $80)<>0;
-end;
-
 function GetRSSI(data: TPayLoad): int16;                {Get receiver RSSI in %}
 begin
   result:=round(data[6]*100/255);                       {in %}
 end;
-
-
 
 end.
