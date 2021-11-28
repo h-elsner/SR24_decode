@@ -39,7 +39,7 @@ type                                                   {Definitions for TForm1}
     lblTemp: TLabel;
     lblSerial: TLabel;
     MainMenu: TMainMenu;
-    MenuItem1: TMenuItem;
+    mnFile: TMenuItem;
     N6: TMenuItem;
     MenuItem3: TMenuItem;
     N4: TMenuItem;
@@ -89,6 +89,10 @@ type                                                   {Definitions for TForm1}
 
   end;
 
+{.$I wizard_dt.inc}
+{$I wizard_en.inc}
+
+
 var
   Form1: TForm1;
   SR24Connected: boolean;
@@ -101,39 +105,12 @@ const
   email   ='helmut.elsner@live.com';                   {My e-mail address}
   homepage='http://h-elsner.mooo.com';                 {My Homepage}
   githublink='https://github.com/h-elsner/Q500log2kml';
-  capForm1='Edit settings for RC models with SR24';
-
-  rsBind1='LED at SR24 slow binking: Waiting for connection.';
-  rsBind2='LED at SR24 solid:        Connected to RC.';
-  rsBind3='>>>>> Sending BIND command...';
-  rsBind4='LED at SR24 fast binking: Bind mode.';
-  rsHint='Hint:    ';
-  rsWarn='Warning: ';
-  rsErr= 'Error:   ';
-  rsSave='Save settings file as';
-  rsDefault='# Default settings';
-  rsCheck='Checking current settings file in text editor.';
-
-  errNoCon='SR24 not connected';
-  errLoad='Load settings file to check.';
-  errInvPio='Invalid GPIO pin number.';
-  rsValidNR='Valid but not recommended GPIO pin.';
-  rsWarnPWM='PWM channels should not assigned to switches.';
-  rsGPIO='GPIO';
-  rsNoPins='No GPIO pins assigned.';
-  rsNoPWM='No PWM channels assigned';
-  errPinX=' already used. Do you really want to use this pin for multiple purposes?';
-  errChanX=' already used. Do you really want to use this channel for multiple purposes?';
-  errInvChan='Invalid RC channel number.';
-  errPWMset='PWM channel must not assigned here.';
-  rsCheckOK='Settings seems to be OK. No inconsistency found.';
-  rsDefaultSet='OK, those are the default settings.';
-  rsLines='A settings file should have more than one line. No check done.';
   tab1=' ';
 
   servx=[1..4, 7, 8];                                  {Valid channel numbers for servos}
   switx=[5, 6, 9..12];                                 {Valid channel numbers for switches (6 usually not used)}
   recGPIO=[5, 6, 12, 16, 17, 22..27];                  {Recommended GPIO numbers}
+  rsGPIO='GPIO';
 
 
 implementation
@@ -148,11 +125,13 @@ begin
   Caption:=capForm1;
   SR24connected:=false;
   mmoText.Lines.Clear;
-  mmoInfo.Text:='Info text';
+  mmoInfo.Text:='Info';
 {$IFDEF WINDOWS}
   cbxPort.ItemIndex:=3;
+  actBind.Enabled:=false;
 {$ELSE}
   cbxPort.ItemIndex:=0;
+  actBind.Enabled:=true;
 {$EndIf}
 
   if FileExists(Application.Location+filename_settings) then
@@ -165,7 +144,28 @@ begin
   SaveDialog.FileName:=filename_settings;
   OpenDialog.InitialDir:=Application.Location;
   SaveDialog.InitialDir:=Application.Location;
+
+  actClose.Caption:=capClose;
+  actClose.Hint:=hntClose;
+  actOpen.Caption:=capOpen;
+  actOpen.Hint:=hntOpen;
+  actDefault.Caption:=capDefault;
+  actDefault.Hint:=hntDefault;
+  actSave.Caption:=capSave;
   actSave.Hint:=rsSave+' "'+filename_settings+'".';
+  actSaveAs.Caption:=capSaveAs;
+  actSaveAs.Hint:=hntSaveAs;
+  actBind.Caption:=capBind;
+  actBind.Hint:=hntBind;
+  actFindInfo.Caption:=capFindInfo;
+  actFindInfo.Hint:=hntFindInfo;
+  actManual.Caption:=capManual;
+  actManual.Hint:=hntManual;
+  actAbout.Caption:=capAbout;
+  actAbout.Hint:=hntAbout;
+  actHomepage.Caption:=capHomepage;
+  actHomepage.Hint:=hntHomepage;
+  mnFile.Caption:=capFile;
 end;
 
 procedure TForm1.tmrBindTimer(Sender: TObject);        {sends 5 times bind message}
@@ -312,6 +312,7 @@ var
   end;
 
 begin
+  actFindInfo.Enabled:=true;
   mmoInfo.Lines.Clear;
   zhl:=0;
   g:=0;
@@ -489,8 +490,10 @@ var
 begin
   inlist:=TStringList.Create;
   try
-    inlist.LoadFromFile(OpenDialog.FileName);
-    inlist.SaveToFile(ChangeFileExt(OpenDialog.FileName, '.bak'));
+    if FileExists(OpenDialog.FileName) then begin
+      inlist.LoadFromFile(OpenDialog.FileName);
+      inlist.SaveToFile(ChangeFileExt(OpenDialog.FileName, '.bak'));
+    end;
     mmoText.Lines.SaveToFile(OpenDialog.FileName);
   finally
     inlist.Free;

@@ -20,10 +20,10 @@ object Form1: TForm1
     Height = 448
     Top = 0
     Width = 713
-    ActivePage = tabTextedit
+    ActivePage = tabTools
     Align = alClient
     Images = ImageList
-    TabIndex = 0
+    TabIndex = 1
     TabOrder = 0
     object tabTextedit: TTabSheet
       Caption = 'Text editor'
@@ -197,7 +197,7 @@ object Form1: TForm1
     Images = ImageList
     Left = 384
     Top = 88
-    object MenuItem1: TMenuItem
+    object mnFile: TMenuItem
       Caption = '&File'
       object mnOpen: TMenuItem
         Action = actOpen
@@ -261,19 +261,16 @@ object Form1: TForm1
     Top = 160
     object actClose: TAction
       Caption = '&Close'
-      Hint = 'Close application. All not saved changes are lost.'
       ImageIndex = 0
       OnExecute = actCloseExecute
     end
     object actOpen: TAction
       Caption = '&Open settings'
-      Hint = 'Open settings file.'
       ImageIndex = 3
       OnExecute = actOpenExecute
     end
     object actDefault: TAction
       Caption = '&Load defaults'
-      Hint = 'Load default settings. Agood start for creating a new settings file..'
       ImageIndex = 2
       OnExecute = actDefaultExecute
     end
@@ -284,37 +281,31 @@ object Form1: TForm1
     end
     object actSaveAs: TAction
       Caption = 'Save &as...'
-      Hint = 'Save settings file as...'
       ImageIndex = 5
       OnExecute = actSaveAsExecute
     end
     object actBind: TAction
       Caption = '&Bind RC'
-      Hint = 'Bind receiver to RC.'
       ImageIndex = 6
       OnExecute = actBindExecute
     end
     object actFindInfo: TAction
-      Caption = '&Load info'
-      Hint = 'Load info file if not yet loaded.'
+      Caption = 'info'
       ImageIndex = 12
       OnExecute = actFindInfoExecute
     end
     object actManual: TAction
       Caption = '&Manual'
-      Hint = 'Open user manual.'
       ImageIndex = 9
       OnExecute = actManualExecute
     end
     object actAbout: TAction
       Caption = '&About...'
-      Hint = 'About box.'
       ImageIndex = 8
       OnExecute = actAboutExecute
     end
     object actHomepage: TAction
       Caption = '&Homepage'
-      Hint = 'Open my homepage. There you can find other useful information in "Kopter" section.'
       ImageIndex = 11
       OnExecute = actHomepageExecute
     end

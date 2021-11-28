@@ -264,8 +264,10 @@ end;
 
 procedure SetGPIO(GPIOnr: byte; Gbit: char = GPIOlow);   {Send value '0' or '1' to out-pin}
 begin
-  if GPIOnr<GPIOinvalid then
-    WriteSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue, Gbit);
+  if GPIOnr<GPIOinvalid then begin                       {Read before write to avoid unneccesary write access}
+    if ReadSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue)<>Gbit then
+      WriteSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue, Gbit);
+  end;
 end;
 
 function GetGPIO(GPIOnr: byte): char;                    {Get value '0' or '1' from any pin}

@@ -1,18 +1,20 @@
+# Default settings
+
 # Common settings
 PWM cycle = 20000
 Logging = 0
-Warn1 = 88
+Warn1 = 22
 Warn2 = 88
 
 # Correction factor
-Voltage = 1234
-Aux 3 = 1000
+Voltage = 1
+Speed = 1
 Aux 4 = 1000
 Aux 5 = 1000
 
 # Hardware PWM0:         0
 # Hardware PWM1:         1
-# GPIO number x (BCMxy): x
+# GPIO number x (BCMx):  x
 # No GPIO port assigned: 88
 
 [Servo 1]
@@ -25,18 +27,18 @@ PWM reverse = False
 
 [Servo 2]
 Channel = 2
-Minimum = 800
-Neutral = 1500
-Maximum = 2200
-GPIOnum = 88
-PWM reverse = False
-
-[Servo 3]
-Channel = 3
 Minimum = 900
 Neutral = 1500
 Maximum = 2100
 GPIOnum = 1
+PWM reverse = False
+
+[Servo 3]
+Channel = 3
+Minimum = 683
+Neutral = 2048
+Maximum = 3412
+GPIOnum = 88
 PWM reverse = False
 
 [Servo 4]
@@ -57,9 +59,9 @@ PWM reverse = False
 
 [Servo 6]
 Channel = 8
-Minimum = 1100
-Neutral = 1520
-Maximum = 1900
+Minimum = 683
+Neutral = 2048
+Maximum = 3412
 GPIOnum = 88
 PWM reverse = False
 
@@ -68,8 +70,8 @@ Channel = 5
 Upper  position = 3412
 Middle position = 2048
 Lower  position = 683
-GPIOnum = 88
-GPIOnum 2 = 88
+GPIOnum = 16
+GPIOnum 2 = 17
 
 [Switch 2]
 Channel = 9
@@ -84,7 +86,7 @@ Channel = 10
 Upper  position = 683
 Middle position = 1502
 Lower  position = 3412
-GPIOnum = 6
+GPIOnum = 88
 GPIOnum 2 = 88
 
 [Switch 4]
@@ -92,16 +94,16 @@ Channel = 11
 Upper  position = 4095
 Middle position = 4095
 Lower  position = 0
-GPIOnum = 25
+GPIOnum = 26
 GPIOnum 2 = 88
 
 [Switch 5]
 Channel = 12
-Upper  position = 3412
-Middle position = 3412
-Lower  position = 683
+Upper  position = 4095
+Middle position = 4095
+Lower  position = 0
 GPIOnum = 88
-GPIOnum 2 = 88
+GPIOnum 2 = 26
 
 [Start/stop]
 Channel = 1

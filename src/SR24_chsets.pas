@@ -90,15 +90,15 @@ const
   notused=88;                                           {Set as GPIOnr for unused channels}
 
   DefaultSettings: TSettings =  {Correction factors for analog input: voltage, GPIOnr Warn1, GPIOnr Warn2, Speed, Aux4, Aux5}
-                                ((1000, 88, 88, 1, 1000, 1000),
-                                {6 servos: channel, min, neutral, max, GPIOnr, PWM reverted (1) or GPIOnr2}
+                                ((1, 88, 88, 1, 1000, 1000),
+                                {Six servos: channel, min, neutral, max, GPIOnr, PWM reverted (1) or GPIOnr2}
                                 (1, 683, 2048, 3412, notused, 0), (2, 1100, 1500, 1900, 1, 0),
-                                (3, 1100, 1500, 1900, 0, 0), (4, 683, 2048, 3412, 23, 24),
+                                (3, 1100, 1500, 1900, 0, 0), (4, 683, 2048, 3412, notused, 0),
                                 (7, 683, 2048, 3412, notused, 0), (8, 683, 2048, 3412, notused, 0),
-                                {5 switches: channel, up, middle, down, GPIOnr, GPIOnr2}
-                                (5, 3412, 2048, 683, notused, notused), (9, 2184, 2184, 3412, 16, notused),
-                                (10, 683, 1502, 3412, 17, 27),(11, 4095, 4095, 0, 26, notused),
-                                (12, 3412, 3412, 683, notused, notused),
+                                {Five switches: channel, up, middle, down, GPIOnr, GPIOnr2}
+                                (5, 3412, 2048, 683, notused, notused), (9, 2184, 2184, 3412, notused, notused),
+                                (10, 683, 1502, 3412, 16, 17),(11, 4095, 4095, 0, 26, notused),
+                                (12, 4095, 4095, 0, notused, notused),
                                 {start/stop button: channel, active, GPIOnr and PWM cycle for all servos, n/a, logging}
                                 (1, 0, notused, 20000, 0, 0));
 

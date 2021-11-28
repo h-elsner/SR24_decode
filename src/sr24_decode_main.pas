@@ -217,18 +217,6 @@ begin
   end;
 end;
 
-function GPSfixType(const w: byte): string;        {MAVlink like GPS fix type to string}
-begin
-  result:='';
-  case w of
-    0:	Result:='No GPS connected';
-    1:	Result:='No position information, GPS is connected';
-    2:	Result:='2D position';
-    3:	Result:='3D position';
-  end;
-end;
-
-
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   Caption:='Record SR24 data stream';
@@ -255,7 +243,7 @@ begin
   speSats.Hint:=IntToStr(ft and $1F)+' sats';
   if ft and $80>0 then
     cbGPS.Checked:=true;                           {nsat, GPS used}
-  lblFixType.Caption:=rsFixtype+dpkt+LineEnding+GPSfixType(GetFixType(ft));
+  lblFixType.Caption:=rsFixtype+dpkt+LineEnding+FixTypeToStr(ft);
 end;
 
 function MessageTypeToStr(mtp: byte):string;       {Known message types as string}
@@ -663,6 +651,10 @@ var
   thr, roll, pitch, yaw, pan: uint16;
   logfile1: TextFile;
   loglist1: TStringList;
+  logfile2: TextFile;
+  loglist2: TStringList;
+  logfile3: TextFile;
+  loglist3: TStringList;
   fnr, csvstr: string;
 
   procedure WriteLogBlock;                           {Write a whole block from buffer to file}
@@ -672,6 +664,12 @@ var
   begin
     for i:=0 to loglist1.Count-1 do
       writeln(logfile1, loglist1[i]);
+    loglist1.Clear;                                  {Empty log buffer}
+    for i:=0 to loglist2.Count-1 do
+      writeln(logfile2, loglist2[i]);
+    loglist1.Clear;                                  {Empty log buffer}
+    for i:=0 to loglist3.Count-1 do
+      writeln(logfile3, loglist3[i]);
     loglist1.Clear;                                  {Empty log buffer}
   end;
 
@@ -703,8 +701,14 @@ begin
       MakeFlightlogDir;
       fnr:=getlognumber;                             {Find next log file}
       loglist1:=TStringList.Create;                  {Buffer for csv strings telemetry}
+      loglist2:=TStringList.Create;                  {Buffer for csv strings Remote}
+      loglist3:=TStringList.Create;                  {Buffer for csv strings RemoteGPS}
       AssignFile(logfile1, GetFlightLogDirs(1)+telemetry+fnr);
+      AssignFile(logfile2, GetFlightLogDirs(1)+remote+fnr);
+      AssignFile(logfile3, GetFlightLogDirs(1)+remotegps+fnr);
       append(logfile1);
+      append(logfile2);
+      append(logfile3);
     end;
     try
       repeat
@@ -773,6 +777,15 @@ begin
           end;
           inc(z);
 
+          if csets[12, 5]>0 then begin               {Logging enabled, read RC stuff}
+            csvstr:=GetTimeStamp;
+            for i:=1 to 12 do
+              csvstr:=csvstr+sep+IntToStr(GetChValue(data, i));
+            loglist2.Add(csvstr);                    {Remote}
+            if data[3]=3 then                        {GPS data -> write RemoteGPS}
+              loglist3.Add(GetTimeStamp+sep+GPSdata(data));
+          end;
+
           if z>=4 then begin                         {One telemetry per 5 received packages}
             gps:=0;
             IntToTelemetry(data, tlz, 4, 2);         {Counter}
@@ -840,6 +853,10 @@ begin
       if csets[12, 5]>0 then begin                   {Logging enabled, cleanup}
         loglist1.Free;
         CloseFile(logfile1);
+        loglist2.Free;
+        CloseFile(logfile2);
+        loglist3.Free;
+        CloseFile(logfile3);
       end;
     end;
   end else

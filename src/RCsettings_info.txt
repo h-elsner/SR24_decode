@@ -2,7 +2,7 @@
 Channel assignment ST16               | Available GPIO ports
 --------------------------------------+---------------------
 Channel  1 - Throttle THR             | PWM0  GPIO18 (pin 12)
-Channel  2 - Roll     AIL             | PWM1  GPIO13 (pin 12)
+Channel  2 - Roll     AIL             | PWM1  GPIO13 (pin 33)
 Channel  3 - Pitch    ELE             |
 Channel  4 - Yaw      RUD             | GPIO5  (pin 29)
 Channel  5 - Flight mode              | GPIO6  (pin 31)
@@ -20,7 +20,7 @@ Start/stop - Mixed to Throttle = 0    | GPIO26 (pin 37)
 Servo output - PWM duty in micro seconds (default 1100-1900)
 
  1  +------+    Default analog servo:
-    |      |    Cycle = 20000             (= 20ms/50Hz)   
+    |      |    Cycle = 20000            (= 20ms/50Hz)   
     |      |    Min   = 2100 
     |<---->|    Null  = 1500
     |      |    Min   = 900
@@ -35,5 +35,3 @@ Gimbal tilt mode: 2184-3412
 Gimbal pan mode:  683-1502-3412
 Landing gear:     0-4095
 Aux button:       683-3412
-
-For 2-way switches GPIOnum 2 is useless.

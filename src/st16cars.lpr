@@ -129,25 +129,45 @@ end;
 procedure ControlSwitches(dat: TPayLoad);            {Send switches to GPIO port}
 var
   i, sw: byte;
+  onarr: array [2..27] of byte;
 
 begin
+  for i:=2 to 27 do                                  {Memory for all GPIO pins}
+    onarr[i]:=notused;                               {All to invalid, need to be enabled below}
+
   for i:=1 to 11 do begin
     sw:=SwitchPos(csets, i, GetChValue(dat, csets[i, 0]));
     if ValidGPIOnr(csets[i, 4]) then begin           {First GPIO port for upper position as ON}
+      if onarr[csets[i, 4]]<>1 then
+        onarr[csets[i, 4]]:=0;                       {Reset if not set yet}
       if sw=1 then
-        SetGPIO(csets[i, 4], GPIOhigh)
-      else
-        SetGPIO(csets[i, 4], GPIOlow);
+        onarr[csets[i, 4]]:=1;
     end;
 
     if ValidGPIOnr(csets[i, 5]) then begin           {For 3-way switches use second GPIO, port}
-      if sw=3 then                                   {Switch in lower position as ON}
-        SetGPIO(csets[i, 5], GPIOhigh)
-      else
-        SetGPIO(csets[i, 5], GPIOlow);
+      if onarr[csets[i, 5]]<>1 then
+        onarr[csets[i, 5]]:=0;                       {Reset if not set yet}
+      if sw=3 then
+        onarr[csets[i, 5]]:=1;
     end;
   end;
+
+///////////////////////////////////////////////////////////////////////
+  {Special, HW dependend functionality: Warning lights on Pan mode to GPIO 16 and 17}
+  if SwitchPos(csets, 9, GetChValue(dat, csets[9, 0]))=3 then begin
+    onarr[16]:=1;
+    onarr[17]:=1;
+  end;
+///////////////////////////////////////////////////////////////////////
+
+  for i:=2 to 27 do begin                            {Execute value to GPIO pin}
+    if onarr[i]=1 then
+      SetGPIO(i, GPIOhigh);
+    if onarr[i]=0 then
+      SetGPIO(i, GPIOlow);
+  end;
 end;
+
 
 function IsStop: boolean;
 begin

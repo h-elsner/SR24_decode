@@ -42,6 +42,7 @@ function  GetTimeStamp: string;                        {Time stamp in Yuneec log
 
 function  GetNumSat(n: byte): byte;                     {Get number of sats from RC}
 function  GetFixType(n: byte): byte;                    {Get GPS fix type}
+function  FixTypeToStr(const w: byte): string;          {MAVlink like GPS fix type to string}
 function  GetGPSused(n: byte): boolean;                 {Get GPS used flag}
 
 
@@ -168,6 +169,17 @@ end;
 function GetFixType(n: byte): byte;                     {FixType in nsat}
 begin
   result:=(n shr 5) and 3;
+end;
+
+function FixTypeToStr(const w: byte): string;           {MAVlink like GPS fix type to string}
+begin
+  result:='';
+  case GetFixType(w) of
+    0:	Result:='No GPS connected';
+    1:	Result:='No position information, GPS is connected';
+    2:	Result:='2D position';
+    3:	Result:='3D position';
+  end;
 end;
 
 function GetGPSused(n: byte): boolean;                  {GPS used in nsat}
