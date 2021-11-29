@@ -13,3 +13,4 @@ The following executables are running with Raspian+GUI on Raspberry Pi:
  - "SR24_decode" is the test tool to play with all that stuff
  - "SR24wizard" is a tool to create and edit settings stored in file rc_settings.set
  - "st16cars" is an example how you can control a model car (or ship) by ST10 or ST16. It runs as terminal program and should be started at boot time. No GUI. It uses rc_settings.set for configuration.
+![Raspberry Pi driven truck](pi_truck.jpg)
