@@ -28,7 +28,7 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, SysUtils, CustApp, crt, SR24_dec, SR24_ctrl, SR24_chsets;
+  Classes, SysUtils, CustApp, crt, SR24_dec, SR24_ctrl, SR24_chsets, UNIX;
 
 type
 
@@ -153,8 +153,8 @@ begin
   end;
 
 ///////////////////////////////////////////////////////////////////////
-  {Special, HW dependend functionality: Warning lights on Pan mode to GPIO 16 and 17}
-  if SwitchPos(csets, 9, GetChValue(dat, csets[9, 0]))=3 then begin
+  {Special, HW dependend functionality: Warning lights on Tilt mode to GPIO 16 and 17}
+  if SwitchPos(csets, 8, GetChValue(dat, csets[8, 0]))=3 then begin
     onarr[16]:=1;
     onarr[17]:=1;
   end;
@@ -202,6 +202,8 @@ begin
     ReadSettings(csets);                             {Load common settings from text file}
     InitServos;                                      {Set up PWM channels}
     InitGPIO;
+    ActivateGPIO(Shutdownpin, 1);                    {GPIO27 as input for shutdown-button}
+                                                     {GPIO27 must have pull-up resistor}
     ConnectUART(uartport, UARTspeed, SR24connected);
     if SR24connected then begin
 
@@ -209,7 +211,7 @@ begin
         tele[36]:=17;
         repeat
           sleep(timeout);
-        until UARTCanRead or IsStop;
+        until UARTCanRead or IsStop or ShutdownButton(Shutdownpin);
       end;
 
       if UARTCanRead then begin                      {ST16 connected}
@@ -253,8 +255,7 @@ begin
             end;
           end else
             ErrorMsg:='No valid messages';           {No valid message found}
-        until IsStop;                                {stop program at any key}
-
+        until IsStop or ShutdownButton(Shutdownpin); {Stop program with 'x' key or HW-button}
       end else
         ErrorMsg:='Cannot read from UART';           {Cannot read from UART}
     end else
@@ -263,8 +264,10 @@ begin
     ErrorMsg:='No PWM channels';                     {No PWM channels available}
   DeactivatePWM;                                     {Clean up all the stuff}
   GPIOoff;
+  DeactivateGPIO(Shutdownpin);
   DisconnectUART(SR24connected);
   writeln(ErrorMsg);
+  fpSystem('sudo halt');
   Terminate;
 end;
 

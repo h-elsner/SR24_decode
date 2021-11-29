@@ -41,7 +41,7 @@ interface
 
 uses
   {$IFDEF UNIX}
-    baseunix,
+    baseunix, UNIX,
   {$EndIf}
     sysutils;
 
@@ -71,7 +71,8 @@ const
   GPIOnodat=' ';                                         {Could not read data from GPIO port}
 
   waitfs=100;                                            {Wait for file system to create GPIO system files}
-
+  Shutdownpin=27;                                        {GPIO pin with shutdown button , 0 is active,
+                                                          Shutdownpin must have pull-up resistor!}
 
 type
   SysData=string[16];                                    {16 is maximum length to send a string}
@@ -95,6 +96,7 @@ procedure DeactivatePWM;                                 {Deactivate all PWM cha
 function  ActivateGPIO(GPIOnr, dir: byte): boolean;      {Open GPIO port as Out/Low as default, dir=1 means input}
 procedure SetGPIO(GPIOnr: byte; Gbit: char=GPIOlow);     {Output on one GPIO out-pin}
 function  GetGPIO(GPIOnr: byte): char;                   {Read GPIO out-pin}
+function  ShutdownButton(GPIOnr: byte): boolean;         {Check if HW Shutdown button was pressed}
 procedure DeactivateGPIO(GPIOnr: byte);                  {Deactivate and close GPIO pin}
 
 implementation
@@ -262,7 +264,7 @@ begin                                                    {dir=1 .. input, dir=0 
   end;
 end;
 
-procedure SetGPIO(GPIOnr: byte; Gbit: char = GPIOlow);   {Send value '0' or '1' to out-pin}
+procedure SetGPIO(GPIOnr: byte; Gbit: char=GPIOlow);     {Send value '0' or '1' to out-pin}
 begin
   if GPIOnr<GPIOinvalid then begin                       {Read before write to avoid unneccesary write access}
     if ReadSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue)<>Gbit then
@@ -274,6 +276,14 @@ function GetGPIO(GPIOnr: byte): char;                    {Get value '0' or '1' f
 begin
   if GPIOnr<GPIOinvalid then
     result:=ReadSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue);
+end;
+
+function ShutdownButton(GPIOnr: byte): boolean;          {Check if HW Shutdown button was pressed}
+begin
+  result:=false;
+  if (ReadSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fDirection)='i') and
+     (GetGPIO(GPIOnr)=GPIOlow) then
+    result:=true;
 end;
 
 procedure DeactivateGPIO(GPIOnr: byte);                  {Deactivate and close GPIO pin}
