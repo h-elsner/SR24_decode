@@ -2,6 +2,7 @@
  Configuration of HW made by config file. Two HW PWM channels for servos are
  supported and you can assign all switches to a GPIO output.
 
+ https://github.com/h-elsner/SR24_decode
 
  st16cars needs to be in autostart:
  Create a script and start the program as background process:
@@ -153,7 +154,7 @@ begin
   end;
 
 ///////////////////////////////////////////////////////////////////////
-  {Special, HW dependend functionality: Warning lights on Tilt mode to GPIO 16 and 17}
+{Special, HW dependend functionality: Warning lights on Tilt mode to GPIO 16 and 17}
   if SwitchPos(csets, 8, GetChValue(dat, csets[8, 0]))=3 then begin
     onarr[16]:=1;
     onarr[17]:=1;
@@ -181,16 +182,18 @@ procedure st16car1.DoRun;
 var
   ErrorMsg: string;
   data, tele: TPayLoad;
-  i, z: byte;
+  i, z, shutdownpin: byte;
   gps: uint16;
   coord: array [0..7] of byte;
   alt: single;
+  gohalt: boolean;
 
 begin
   ErrorMsg:='OK';                                    {Exit no faults}
   SR24connected:=false;
   z:=0;
   alt:=0;
+  gohalt:=false;
   if ActivatePWMChannel(true)>1 then begin           {At least one channel activ}
     for i:=0 to 39 do                                {Load default values for telemetry}
       tele[i]:=DefTelemetry[i];
@@ -202,8 +205,10 @@ begin
     ReadSettings(csets);                             {Load common settings from text file}
     InitServos;                                      {Set up PWM channels}
     InitGPIO;
-    ActivateGPIO(Shutdownpin, 1);                    {GPIO27 as input for shutdown-button}
-                                                     {GPIO27 must have pull-up resistor}
+    shutdownpin:=csets[0, 4];                        {GPIO pin as input for shutdown-key}
+    if ValidGPIOnr(shutdownpin) then
+      ActivateGPIO(shutdownpin, 1);                  {GPIO pin must have pull-up resistor!}
+
     ConnectUART(uartport, UARTspeed, SR24connected);
     if SR24connected then begin
 
@@ -211,7 +216,8 @@ begin
         tele[36]:=17;
         repeat
           sleep(timeout);
-        until UARTCanRead or IsStop or ShutdownButton(Shutdownpin);
+          gohalt:=ShutdownButton(shutdownpin);
+        until UARTCanRead or IsStop or gohalt;
       end;
 
       if UARTCanRead then begin                      {ST16 connected}
@@ -255,7 +261,8 @@ begin
             end;
           end else
             ErrorMsg:='No valid messages';           {No valid message found}
-        until IsStop or ShutdownButton(Shutdownpin); {Stop program with 'x' key or HW-button}
+          gohalt:=ShutdownButton(Shutdownpin);
+        until IsStop or gohalt;                      {Stop program with 'x' key or HW-button}
       end else
         ErrorMsg:='Cannot read from UART';           {Cannot read from UART}
     end else
@@ -267,7 +274,8 @@ begin
   DeactivateGPIO(Shutdownpin);
   DisconnectUART(SR24connected);
   writeln(ErrorMsg);
-  fpSystem('sudo halt');
+  if gohalt then                                     {Shutdown only with HW-Button}
+    fpSystem('sudo halt');
   Terminate;
 end;
 

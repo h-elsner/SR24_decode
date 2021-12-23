@@ -2,6 +2,7 @@
 
  Set relationship between channels and servo
  -------------------------------------------
+ - Common values and correction/conversion factors
  - assign channel to servo number (6 servos)
  - assign servo number to PWM or GPIO (6 servos)
  - set min, max and neutral per servo
@@ -44,7 +45,7 @@ type
 const
   filename_settings='rc_settings.set';
 
-{Defaults from Yuneec ST16}
+{Defaults from Yuneec ST16 --> see Q500log2kml manual}
   stkang =2184;                                         {switch tilt angle, 10%}
   stkntrl=2048;                                         {neutral; 0%}
   stkdown=683;                                          {-100%}
@@ -61,10 +62,10 @@ const
   abtn='Start/stop';                                    {Start button mixed in channel x}
 
   voltID='Voltage';
-  warn1= 'Warn1';
-  warn2= 'Warn2';
+  warn1= 'Warn 1';
+  warn2= 'Warn 2';
   tasID= 'Speed';
-  aux4=  'Aux 4';
+  OffKey='Shutdown';
   aux5=  'Aux 5';
   pwmcycle='PWM cycle';
   pwmrev=  'PWM reverse';
@@ -89,8 +90,8 @@ const
   lzch=   ' ';
   notused=88;                                           {Set as GPIOnr for unused channels}
 
-  DefaultSettings: TSettings =  {Correction factors for analog input: voltage, GPIOnr Warn1, GPIOnr Warn2, Speed, Aux4, Aux5}
-                                ((1, 88, 88, 1, 1000, 1000),
+  DefaultSettings: TSettings =  {Correction factors for analog input: voltage, GPIOnr Warn1, GPIOnr Warn2, Speed, Shutdown, Aux5}
+                                ((1, 88, 88, 1, 88, 1000),
                                 {Six servos: channel, min, neutral, max, GPIOnr, PWM reverted (1) or GPIOnr2}
                                 (1, 683, 2048, 3412, notused, 0), (2, 1100, 1500, 1900, 1, 0),
                                 (3, 1100, 1500, 1900, 0, 0), (4, 683, 2048, 3412, notused, 0),
@@ -128,7 +129,23 @@ implementation
           1..6  Servos 1-6
           7..11 Switches 1-5, 2-way or 3-way.
          12..Start/stop button and some common values
-        >12..notused index, SW fault}
+        >12..notused index, SW fault
+
+Channel <> Index (TSettings array) in case of ST10/ST16 standard assignment
+Thr        1 - 1
+Roll       2 - 2
+Pitch      3 - 3
+Yaw        4 - 4
+f mode     5 - 7
+(RTH)      6 - n/a
+Cam Tilt   7 - 5
+--------------------------------------
+Cam pan    8 - 6    +ST12     for ST16
+Tilt mode  9 - 8
+Pan mode  10 - 9
+Gear sw   11 - 10   +ST12
+Aux btn   12 - 11
+}
 
 function GetControlType(idx: byte): byte;               {Check if servos (1) or switches (7)}
 begin
@@ -170,12 +187,13 @@ begin
   liste.Add(logging+lzch+assgn+lzch+IntToStr(sets[12, 5]));
   liste.Add(warn1+lzch+assgn+lzch+IntToStr(sets[0, 1]));     {Voltage warning 1}
   liste.Add(warn2+lzch+assgn+lzch+IntToStr(sets[0, 2]));     {Voltage warning 2}
+  liste.Add(OffKey+lzch+assgn+lzch+IntToStr(sets[0, 4]));    {Shutdown key}
+  liste.Add(comment+' Shutdown pin is input and needs a pull up resistor 10kOhm');
   liste.Add('');
 
-  liste.Add(comment+' Correction factor');
+  liste.Add(comment+' Correction factors');
   liste.Add(voltID+lzch+assgn+lzch+IntToStr(sets[0, 0]));    {Voltage}
   liste.Add(tasID+lzch+assgn+lzch+IntToStr(sets[0, 3]));     {PWM to TAS}
-  liste.Add(aux4+lzch+assgn+lzch+IntToStr(sets[0, 4]));
   liste.Add(aux5+lzch+assgn+lzch+IntToStr(sets[0, 5]));
   liste.Add('');
   liste.Add(comment+' Hardware PWM0:         0');
@@ -241,7 +259,9 @@ end;
  initialize the controls from settings.
 
  Settings array [index, column]:
- Index 0: Correction 5 factors, first column is reserved for voltage
+ Index 0: Correction factors, voltage, warnings and Shutdownpin
+          Shutdownpin must have pull-up resistor! PIO pin with shutdown button , 0 is active
+
  Index 1..6: Servos 1 to 6
  Index 7..11: Switches, 2-way or 3-way. For 3-way switches pio2 can be set to addess another GPIO port
  index 12: Start/stop button and some common values. Column 3 reserved for Servo PWM frequency
@@ -289,7 +309,7 @@ begin
             result[0, 3]:=w;
             Continue;
           end;
-          if TryStrToInt(GetIDvalue(s, aux4), w) then begin
+          if TryStrToInt(GetIDvalue(s, OffKey), w) then begin
             result[0, 4]:=w;
             Continue;
           end;

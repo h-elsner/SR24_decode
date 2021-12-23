@@ -41,7 +41,7 @@ interface
 
 uses
   {$IFDEF UNIX}
-    baseunix, UNIX,
+    baseunix,
   {$EndIf}
     sysutils;
 
@@ -71,8 +71,6 @@ const
   GPIOnodat=' ';                                         {Could not read data from GPIO port}
 
   waitfs=100;                                            {Wait for file system to create GPIO system files}
-  Shutdownpin=27;                                        {GPIO pin with shutdown button , 0 is active,
-                                                          Shutdownpin must have pull-up resistor!}
 
 type
   SysData=string[16];                                    {16 is maximum length to send a string}
@@ -278,11 +276,12 @@ begin
     result:=ReadSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fValue);
 end;
 
-function ShutdownButton(GPIOnr: byte): boolean;          {Check if HW Shutdown button was pressed}
+function ShutdownButton(GPIOnr: byte): boolean;          {Check if HW Shutdown key was pressed}
 begin
   result:=false;
-  if (ReadSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fDirection)='i') and
-     (GetGPIO(GPIOnr)=GPIOlow) then
+  if ValidGPIOnr(GPIOnr) and
+     (ReadSysFile(pathGPIO+fgpio+IntToStr(GPIOnr)+fDirection)='i') and
+     (GetGPIO(GPIOnr)=GPIOlow) then                      {Shutdown key pressed}
     result:=true;
 end;
 
