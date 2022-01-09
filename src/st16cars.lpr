@@ -153,13 +153,13 @@ begin
     end;
   end;
 
-///////////////////////////////////////////////////////////////////////
-{Special, HW dependend functionality: Warning lights on Tilt mode to GPIO 16 and 17}
+////////////////////////////////////////////////////////////////////////////////
+{Special, HW dependend functionality: Hazard lights on Tilt mode to GPIO 16 and 17}
   if SwitchPos(csets, 8, GetChValue(dat, csets[8, 0]))=3 then begin
     onarr[16]:=1;
     onarr[17]:=1;
   end;
-///////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
   for i:=2 to 27 do begin                            {Execute value to GPIO pin}
     if onarr[i]=1 then
@@ -182,11 +182,11 @@ procedure st16car1.DoRun;
 var
   ErrorMsg: string;
   data, tele: TPayLoad;
-  i, z, shutdownpin: byte;
+  i, z: byte;
   gps: uint16;
   coord: array [0..7] of byte;
   alt: single;
-  gohalt: boolean;
+  gohalt, bindmode, offenabled: boolean;
 
 begin
   ErrorMsg:='OK';                                    {Exit no faults}
@@ -194,6 +194,8 @@ begin
   z:=0;
   alt:=0;
   gohalt:=false;
+  bindmode:=false;
+  offenabled:=true;
   if ActivatePWMChannel(true)>1 then begin           {At least one channel activ}
     for i:=0 to 39 do                                {Load default values for telemetry}
       tele[i]:=DefTelemetry[i];
@@ -205,9 +207,8 @@ begin
     ReadSettings(csets);                             {Load common settings from text file}
     InitServos;                                      {Set up PWM channels}
     InitGPIO;
-    shutdownpin:=csets[0, 4];                        {GPIO pin as input for shutdown-key}
-    if ValidGPIOnr(shutdownpin) then
-      ActivateGPIO(shutdownpin, 1);                  {GPIO pin must have pull-up resistor!}
+    if ValidGPIOnr(csets[0, 4]) then                 {Shutdown key}
+      ActivateGPIO(csets[0, 4], 1);                  {GPIO pin must have pull-up resistor!}
 
     ConnectUART(uartport, UARTspeed, SR24connected);
     if SR24connected then begin
@@ -215,13 +216,28 @@ begin
       if not UARTCanRead then begin                  {Wait for RC}
         tele[36]:=17;
         repeat
+          if (not bindmode) and ShutDownButton(csets[0, 4]) then begin
+            bindmode:=true;                          {Send Bind messages only once}
+            offenabled:=false;                       {Stop shutdown function for some time}
+            SendBind;
+            z:=0;
+////////////////////////////////////////////////////////////////////////////////
+{special, HW dependend functionality: Front light to indicate bind mode}
+            SetGPIO(26, GPIOhigh);
+////////////////////////////////////////////////////////////////////////////////
+          end;
           sleep(timeout);
-          gohalt:=ShutdownButton(shutdownpin);
+          inc(z);
+          if z>10 then                               {Wait some time depending on timeout; default 3s}
+            offenabled:=true;                        {Key becomes shutdown key again}
+          gohalt:=offenabled and ShutDownButton(csets[0, 4]);
         until UARTCanRead or IsStop or gohalt;
       end;
 
+      z:=0;
       if UARTCanRead then begin                      {ST16 connected}
         tele[36]:=16;
+        bindmode:=false;
 
         repeat                                       {Message loop}
           if UARTreadMsg(data) then begin
@@ -261,17 +277,26 @@ begin
             end;
           end else
             ErrorMsg:='No valid messages';           {No valid message found}
-          gohalt:=ShutdownButton(Shutdownpin);
+          gohalt:=ShutdownButton(csets[0, 4]);
         until IsStop or gohalt;                      {Stop program with 'x' key or HW-button}
       end else
         ErrorMsg:='Cannot read from UART';           {Cannot read from UART}
+
     end else
       ErrorMsg:='Not connected';                     {UART not connected}
   end else
     ErrorMsg:='No PWM channels';                     {No PWM channels available}
+
+////////////////////////////////////////////////////////////////////////////////
+{special, HW dependend functionality: Retract camera at stop}
+  SetGPIO(24, GPIOlow);
+  SetGPIO(23, GPIOhigh);
+  sleep(1000);                                       {Wait until camera came down}
+////////////////////////////////////////////////////////////////////////////////
+
   DeactivatePWM;                                     {Clean up all the stuff}
   GPIOoff;
-  DeactivateGPIO(Shutdownpin);
+  DeactivateGPIO(csets[0, 4]);                       {Shutdown pin}
   DisconnectUART(SR24connected);
   writeln(ErrorMsg);
   if gohalt then                                     {Shutdown only with HW-Button}

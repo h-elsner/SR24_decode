@@ -91,7 +91,7 @@ const
   notused=88;                                           {Set as GPIOnr for unused channels}
 
   DefaultSettings: TSettings =  {Correction factors for analog input: voltage, GPIOnr Warn1, GPIOnr Warn2, Speed, Shutdown, Aux5}
-                                ((1, 88, 88, 1, 88, 1000),
+                                ((1, notused, notused, 1, notused, 1000),
                                 {Six servos: channel, min, neutral, max, GPIOnr, PWM reverted (1) or GPIOnr2}
                                 (1, 683, 2048, 3412, notused, 0), (2, 1100, 1500, 1900, 1, 0),
                                 (3, 1100, 1500, 1900, 0, 0), (4, 683, 2048, 3412, notused, 0),
@@ -188,7 +188,7 @@ begin
   liste.Add(warn1+lzch+assgn+lzch+IntToStr(sets[0, 1]));     {Voltage warning 1}
   liste.Add(warn2+lzch+assgn+lzch+IntToStr(sets[0, 2]));     {Voltage warning 2}
   liste.Add(OffKey+lzch+assgn+lzch+IntToStr(sets[0, 4]));    {Shutdown key}
-  liste.Add(comment+' Shutdown pin is input and needs a pull up resistor 10kOhm');
+  liste.Add(comment+' Shutdown/bind pin is input and needs a pull up resistor 10kOhm');
   liste.Add('');
 
   liste.Add(comment+' Correction factors');

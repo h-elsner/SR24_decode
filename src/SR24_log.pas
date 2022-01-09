@@ -2,7 +2,8 @@
 
  Prepare a fake Logging like Yuneec legacy flight logs with
  data received from RC. Format can be reviewed by Q500log2kml.
-
+ ---> see q500log2kml manual: http://h-elsner.mooo.com/pdf/Q500log2kml_en.pdf
+                              https://github.com/h-elsner/Q500log2kml
 }
 
 unit SR24_log;
@@ -32,23 +33,23 @@ const
   ziffs=['0'..'9'];                                    {Valid digits in a string}
 
 var
-  MaxNoFiles: uint32=20;                               {Default max 20 logfiles, can be up 99999}
+  MaxNoFiles: uint32=20;                               {Default max 20 logfiles, can be up to 99999}
 
-function  ExtractNumber(s: string):string;             {Extract log number}
+function  ExtractNumber(s: string):string;             {Extract log number from file name}
 function  GetFlightLogDirs(idx: byte): string;         {Get names of log root and sub directories}
 function  MakeFlightLogDir: boolean;                   {Create root path for logfiles}
 function  GetLogNumber: string;                        {Provides tail of next log file and create it}
 function  GetTimeStamp: string;                        {Time stamp in Yuneec log format}
 
-function  GetNumSat(n: byte): byte;                     {Get number of sats from RC}
-function  GetFixType(n: byte): byte;                    {Get GPS fix type}
-function  FixTypeToStr(const w: byte): string;          {MAVlink like GPS fix type to string}
-function  GetGPSused(n: byte): boolean;                 {Get GPS used flag}
+function  GetNumSat(n: byte): byte;                    {Get number of sats from RC}
+function  GetFixType(n: byte): byte;                   {Get GPS fix type}
+function  FixTypeToStr(const w: byte): string;         {MAVlink like GPS fix type to string}
+function  GetGPSused(n: byte): boolean;                {Get GPS used flag}
 
 
 implementation
 
-function ExtractNumber(s: string):string;              {Extract log number}
+function ExtractNumber(s: string):string;              {Extract log number from file name}
 var
   i: integer;
   f: boolean;
@@ -69,7 +70,7 @@ begin
   result:=s1;
 end;
 
-function GetFlightLogDirs(idx: byte): string;         {Get names of log root (0) and sub directories (1..3)}
+function GetFlightLogDirs(idx: byte): string;          {Get names of log root (0) and sub directories (1..3)}
 begin
   result:=IncludeTrailingPathDelimiter(ExtractFilePath(paramstr(0))+fldir);
   case idx of
@@ -161,17 +162,17 @@ begin
   result:=FormatDateTime('YYYYMMDD hh:nn:ss:zzz', now);
 end;
 
-function GetNumSat(n: byte): byte;                      {Number of satellites}
+function GetNumSat(n: byte): byte;                     {Number of satellites}
 begin
   result:=(n and $1F);
 end;
 
-function GetFixType(n: byte): byte;                     {FixType in nsat}
+function GetFixType(n: byte): byte;                    {FixType in nsat}
 begin
   result:=(n shr 5) and 3;
 end;
 
-function FixTypeToStr(const w: byte): string;           {MAVlink like GPS fix type to string}
+function FixTypeToStr(const w: byte): string;          {MAVlink like GPS fix type to string}
 begin
   result:='';
   case GetFixType(w) of
@@ -182,7 +183,7 @@ begin
   end;
 end;
 
-function GetGPSused(n: byte): boolean;                  {GPS used in nsat}
+function GetGPSused(n: byte): boolean;                 {GPS used in nsat}
 begin
   result:=(n and $80)<>0;
 end;
