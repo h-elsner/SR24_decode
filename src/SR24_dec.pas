@@ -90,7 +90,7 @@ const
                 0, 0, 0, 0, 0, 0,                       {18: vx, vy, vz }
                 0, 110, 0,                              {24: nsat, voltage (16V), current}
                 0, 0, 0, 0, 0, 0,                       {27: roll, pitch, yaw }
-	        63, 97, 85,                             {33: motor status, IMU status, Preessure compass}
+	        63, 96, 85,                             {33: motor status, IMU status, Preessure compass}
 	        16, 5, 0, 40);                          {36: flight mode, vehicle type, error flags, gps_AccH}
 
 

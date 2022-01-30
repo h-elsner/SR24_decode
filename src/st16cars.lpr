@@ -29,7 +29,7 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, SysUtils, CustApp, crt, SR24_dec, SR24_ctrl, SR24_chsets, UNIX;
+  Classes, SysUtils, CustApp, crt, SR24_dec, SR24_ctrl, SR24_chsets, mpu_ctrl, UNIX;
 
 type
 
@@ -182,14 +182,15 @@ procedure st16car1.DoRun;
 var
   ErrorMsg: string;
   data, tele: TPayLoad;
+  i16: int16;                                        {2byte values for telemetry}
   i, z: byte;
   gps: uint16;
   coord: array [0..7] of byte;
   alt: single;
-  gohalt, bindmode, offenabled: boolean;
+  gohalt, bindmode, offenabled, mpu: boolean;
 
 begin
-  ErrorMsg:='OK';                                    {Exit no faults}
+  ErrorMsg:='No IMU';                                {Exit no faults, no IMU available}
   SR24connected:=false;
   z:=0;
   alt:=0;
@@ -204,6 +205,14 @@ begin
     for i:=0 to high(coord) do                       {Empty coords buffer}
       coord[i]:=0;
 
+    mpu:=GetAdrStrMPU;                               {Check if MPU6050 is available}
+    if mpu then begin
+      ErrorMsg:='OK';                                {Exit no faults}
+      MPUWakeUp;
+      SetReg(MPUadr, 27, 0);                         {afs_sel=0 - +/-2G}
+      tele[34]:=tele[34] or 1;                       {IMU bit set in IMU_status}
+    end;
+
     ReadSettings(csets);                             {Load common settings from text file}
     InitServos;                                      {Set up PWM channels}
     InitGPIO;
@@ -214,7 +223,7 @@ begin
     if SR24connected then begin
 
       if not UARTCanRead then begin                  {Wait for RC}
-        tele[36]:=17;
+        tele[36]:=17;                                {Flight mode}
         repeat
           if (not bindmode) and ShutDownButton(csets[0, 4]) then begin
             bindmode:=true;                          {Send Bind messages only once}
@@ -226,17 +235,20 @@ begin
             SetGPIO(26, GPIOhigh);
 ////////////////////////////////////////////////////////////////////////////////
           end;
+
           sleep(timeout);
           inc(z);
-          if z>10 then                               {Wait some time depending on timeout; default 3s}
+          if z>20 then begin                         {Wait some time depending on timeout; default 3s}
             offenabled:=true;                        {Key becomes shutdown key again}
+            z:=0;
+          end;
           gohalt:=offenabled and ShutDownButton(csets[0, 4]);
         until UARTCanRead or IsStop or gohalt;
       end;
 
       z:=0;
       if UARTCanRead then begin                      {ST16 connected}
-        tele[36]:=16;
+        tele[36]:=16;                                {Flight mode init}
         bindmode:=false;
 
         repeat                                       {Message loop}
@@ -270,8 +282,27 @@ begin
               if gps<>0 then begin
                 i:=i or $80;                         {GPS of RC aquired}
                 tele[36]:=3;                         {Flight mode}
+                tele[34]:=tele[34] or $20;           {GPS2 in IMU status available}
               end;
               tele[24]:=i;                           {nsat + GPS used}
+
+              if mpu then begin                      {IMU MPU6050 available}
+                i16:=GetRegWbe(MPUadr, 61);          {Accel_Y}
+                i16:=round(i16/16384*csets[0, 5]);   {Correction factor AUX5}
+                tele[27]:=i16 and $ff;               {Roll_L}
+                tele[28]:=(i16 shr 8) and $FF;       {Roll_H}
+
+                i16:=GetRegWbe(MPUadr, 63);          {Accel_Z}
+                i16:=-round((i16/16384-1)*csets[0, 5]);
+                tele[29]:=i16 and $ff;               {Pitch_L}
+                tele[30]:=(i16 shr 8) and $FF;       {Pitch_H}
+
+                i16:=GetRegWbe(MPUadr, 59);          {Accel_X}
+                i16:=round((i16/16384-1)*csets[0, 5]);
+                tele[31]:=i16 and $ff;               {Yaw_L}
+                tele[32]:=(i16 shr 8) and $FF;       {Yaw_H}
+              end;
+
               UARTsendMsg(tele);
               z:=0;                                  {Reset counter}
             end;

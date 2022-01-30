@@ -27,7 +27,7 @@ const
   remotegps='RemoteGPS';
   csvext='.csv';
 
-  sep=';';
+  sep=',';                                             {Data separator in log files}
   cff='0.000000';
   aff='0.00';
   ziffs=['0'..'9'];                                    {Valid digits in a string}
@@ -35,7 +35,7 @@ const
 var
   MaxNoFiles: uint32=20;                               {Default max 20 logfiles, can be up to 99999}
 
-function  ExtractNumber(s: string):string;             {Extract log number from file name}
+function  ExtractNumber(s: string): string;            {Extract log number from file name}
 function  GetFlightLogDirs(idx: byte): string;         {Get names of log root and sub directories}
 function  MakeFlightLogDir: boolean;                   {Create root path for logfiles}
 function  GetLogNumber: string;                        {Provides tail of next log file and create it}
@@ -49,7 +49,7 @@ function  GetGPSused(n: byte): boolean;                {Get GPS used flag}
 
 implementation
 
-function ExtractNumber(s: string):string;              {Extract log number from file name}
+function ExtractNumber(s: string): string;             {Extract log number from file name}
 var
   i: integer;
   f: boolean;
