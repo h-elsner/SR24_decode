@@ -185,6 +185,7 @@ var
   i16: int16;                                        {2byte values for telemetry}
   i, z: byte;
   gps: uint16;
+  temp: byte;
   coord: array [0..7] of byte;
   alt: single;
   gohalt, bindmode, offenabled, mpu: boolean;
@@ -290,17 +291,32 @@ begin
                 i16:=GetRegWbe(MPUadr, 61);          {Accel_Y}
                 i16:=round(i16/16384*csets[0, 5]);   {Correction factor AUX5}
                 tele[27]:=i16 and $ff;               {Roll_L}
+                tele[18]:=tele[27];                  {vx}
                 tele[28]:=(i16 shr 8) and $FF;       {Roll_H}
+                tele[19]:=tele[28];                  {vx}
 
                 i16:=GetRegWbe(MPUadr, 63);          {Accel_Z}
-                i16:=-round((i16/16384-1)*csets[0, 5]);
+                i16:=-round((i16/16384)*csets[0, 5]);
                 tele[29]:=i16 and $ff;               {Pitch_L}
+                tele[20]:=tele[29];                  {vy}
                 tele[30]:=(i16 shr 8) and $FF;       {Pitch_H}
+                tele[21]:=tele[30];                  {Pitch_H}
 
                 i16:=GetRegWbe(MPUadr, 59);          {Accel_X}
-                i16:=round((i16/16384-1)*csets[0, 5]);
-                tele[31]:=i16 and $ff;               {Yaw_L}
-                tele[32]:=(i16 shr 8) and $FF;       {Yaw_H}
+                i16:=round(((i16/16384)-1)*csets[0, 5]);
+                tele[31]:=i16 and $ff;
+                tele[22]:=tele[31];                  {vz}
+                tele[32]:=(i16 shr 8) and $FF;
+                tele[23]:=tele[32];                  {vz}
+
+                i16:=GetRegWbe(MPUadr, 65);          {IMU temperatur instead of current}
+                i16:=Round(ConvTemp(i16)*2);
+                if i16<0 then
+                  tele[26]:=0                        {Negative values cannot be presented}
+                else begin
+                  temp:=i16 and $FF;
+                  tele[26]:=temp;                    {Current}
+                end;
               end;
 
               UARTsendMsg(tele);

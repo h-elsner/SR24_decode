@@ -8,7 +8,8 @@ Shutdown = 27
 # Correction factor
 Voltage = 1
 Speed = 1
-Aux 5 = 1000
+# IMU Temperatur
+Aux 5 = 9000
 
 # Motor: Throttle 
 [Servo 1]
@@ -36,7 +37,6 @@ Maximum = 2100
 GPIOnum = 88
 PWM reverse = False
 
-# Yaw
 # Blinker auf Yaw als Schalter
 [Servo 4]
 Channel = 4

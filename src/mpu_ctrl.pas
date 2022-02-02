@@ -27,6 +27,7 @@
  Write a byte to MPU register:	i2cset y 1 0x68 107 0 (wake-up command)
  Read temperature cyclic (raw):	watch -n 0.5 'i2cget -y 1 0x68 65 w'
 
+Stripped down to MPU6050
 }
 
 unit mpu_ctrl;
@@ -40,38 +41,25 @@ uses
 
 const
   MPUadr='0x68';                                   {Default address of I2C chips}
-  ISTadr='0x0E';
-  ISTID= '0x10';
-  HMCadr='0x1E';
-  intfac='I²C';
 
   bus='1';                                         {Used I2C bus, default}
 {Read/write register MPU6050}
   rwregs=[13..16, 25..28, 35..52, 55, 56, 99..104, 106..108, 114..116];
   roregs=[53, 54, 58..96, 117];                    {Read-only registers}
-  rwIST=[10..12, 65, 66];                          {Register IST8310}
-  roIST=[0, 2..9, 28, 29];
-  rwHMC=[0..2];                                    {Register HMC5883}
-  roHMC=[3..12];
   rst107=$40;                                      {Reset value for power management}
 
   i2cdct='i2cdetect';
   i2cget='i2cget';
   i2cset='i2cset';
-  i2cdump='i2cdump';
   yes='-y';                                        {Disable interactive mode}
   hexidc='0x';
   hexidp='$';
 
 function GetAdrStrMPU: boolean;                    {Check MPU address from register WHO_AM_I}
-function GetAdrStrIST: boolean;                    {Check IST8310 address from register WHO_AM_I}
-function GetAdrStrHMC: boolean;                    {Check HMC5883 address frm ID register A}
 function GetReg(adr: string; r: byte): byte;       {Read byte from MPU}
 function GetRegWbe(adr: string; r: byte): int16;   {Read word from MPU}
-function GetRegWle(adr: string; r: byte): int16;   {Read word from IST little endian}
 procedure SetReg(adr: string; r, v: byte);         {Write byte v to register r}
 procedure MPUWakeUp;                               {Power management set to wake up}
-procedure ISTreset;                                {Soft reset IST8310}
 function GetFS_SEL: byte;                          {Read scale factor for gyro (27)}
 function GetAFS_SEL: byte;                         {Read scale factor for acc (28)}
 function ConvTemp(temp: int16): double;            {Convert temperature}
@@ -79,10 +67,6 @@ function TempToStr: string;                        {Show chip temperature as str
 function ConvGyro(fs: byte; gy: int16): double;    {Convert gyro values according datasheet}
 function ConvAcc(afs: byte; acc: int16;            {Convert acc values according datasheet}
                  mg: boolean=false): double;       {alternativ: output in mG}
-function afsToStr(afs: byte): string;              {Just for information about used acc scale}
-function fsToStr(fs: byte): string;                {Just for information about used gyro scale}
-function AdrToChip(adr: string): string;           {Find chip type on I2C bus 1}
-function ScanI2C(intf: char='1'): string;          {Scan a I2C interface to find all connected chips}
 
 
 implementation
@@ -96,28 +80,6 @@ begin
   RunCommand(i2cdct, [yes, bus], s);
   RunCommand(i2cget, [yes, bus, MPUadr, '117'], s);
   result:=trim(s)=MPUadr;
-end;
-
-function GetAdrStrIST: boolean;                    {Check IST8310 address from register WHO_AM_I}
-var
-  s: string;
-
-begin
-  s:='';
-  RunCommand(i2cdct, [yes, bus], s);
-  RunCommand(i2cget, [yes, bus, ISTadr, '0'], s);
-  result:=trim(s)=ISTID;
-end;
-
-function GetAdrStrHMC: boolean;                    {Check HMC5883 address frm ID register A}
-var
-  s: string;
-
-begin
-  s:='';
-  RunCommand(i2cdct, [yes, bus], s);
-  RunCommand(i2cget, [yes, bus, HMCadr, '0x0A'], s);
-  result:=trim(s)='0x48';
 end;
 
 function GetReg(adr: string; r: byte): byte;       {Read byte from MPU}
@@ -142,16 +104,6 @@ begin
   result:=BEtoN(w);
 end;
 
-function GetRegWle(adr: string; r: byte): int16;   {Read word from IST little endian}
-var
-  s: string;
-
-begin
-  RunCommand(i2cget, [yes, bus, adr, IntToStr(r), 'w'], s);
-  s:=ReplaceText(trim(s), hexidc, hexidp);
-  result:=StrToIntDef(s, $FFFF);
-end;
-
 procedure SetReg(adr: string; r, v: byte);         {Write byte v to register r}
 var
   s: string;
@@ -163,11 +115,6 @@ end;
 procedure MPUWakeUp;                               {Power management set to wake up}
 begin
   SetReg(MPUadr, 107, 0);
-end;
-
-procedure ISTreset;                                {Soft reset IST8310}
-begin
-  SetReg(ISTAdr, 11, 13);                          {Control register2 Soft reset}
 end;
 
 function GetFS_SEL: byte;                          {Read scale factor for gyro}
@@ -220,59 +167,6 @@ begin
   end;
   if mg then
     result:=result*1000;
-end;
-
-function afsToStr(afs: byte): string;              {Just for information about used acc scale}
-begin
-  case afs of
-    0: result:='+/- 2G';
-    1: result:='+/- 4G';
-    2: result:='+/- 8G';
-    3: result:='+/- 16G';
-  end;
-end;
-
-function AdrToChip(adr: string): string;           {Find chip type on I2C bus 1}
-begin
-  result:='';
-  if adr=MPUadr then begin
-    result:='MPU6050';
-    exit
-  end;
-  if adr=ISTadr then begin
-    result:='IST8310';
-    exit
-  end;
-  if adr=HMCadr then begin
-    result:='HMC5883';
-  end;
-end;
-
-function fsToStr(fs: byte): string;                {Just for information about used gyro scale}
-begin
-  case fs of
-    0: result:='+/- 250°/s';
-    1: result:='+/- 500°/s';
-    2: result:='+/- 1000°/s';
-    3: result:='+/- 2000°/s';
-  end;
-end;
-
-function ScanI2C(intf: char=bus): string;          {Scan a I2C interface to find all connected chips}
-var
-  i: byte;
-  s, adr: string;
-
-begin
-  result:='';
-  RunCommand(i2cdct, [yes, bus], s);
-  for i:=3 to 127 do begin
-    adr:=hexidc+IntToHex(i, 2);                    {Test all possible addresses}
-    RunCommand(i2cget, [yes, intf, adr, '0'], s);
-    if pos(hexidc, s)>0 then
-      result:=result+adr+' ';
-  end;
-  result:=trim(result);
 end;
 
 end.
