@@ -51,6 +51,9 @@ const
   ch='Ch';
   dgpio=': GPIO';
   tr='  ';
+  mpuraw=16384;                                      {Accel LSB sensivity for +/-2G (AFS_SEL=0)}
+  nc=30;                                             {Number cycles to compute avarage accel value}
+  kipp=15000;                                        {Accel raw value to identify roll-over (90° --> 16384)}
 
   { st16car1 }
 
@@ -183,21 +186,25 @@ var
   ErrorMsg: string;
   data, tele: TPayLoad;
   i16: int16;                                        {2byte values for telemetry}
-  i, z: byte;
+  accz: integer;                                     {Sum of Acc_Z values}
+  i, z, glf: byte;
   gps: uint16;
   temp: byte;
   coord: array [0..7] of byte;
   alt: single;
-  gohalt, bindmode, offenabled, mpu: boolean;
+  gohalt, bindmode, offenabled, mpu, crash: boolean;
 
 begin
   ErrorMsg:='No IMU';                                {Exit no faults, no IMU available}
   SR24connected:=false;
   z:=0;
+  glf:=0;
   alt:=0;
+  accz:=0;
   gohalt:=false;
   bindmode:=false;
   offenabled:=true;
+  crash:=false;
   if ActivatePWMChannel(true)>1 then begin           {At least one channel activ}
     for i:=0 to 39 do                                {Load default values for telemetry}
       tele[i]:=DefTelemetry[i];
@@ -256,6 +263,14 @@ begin
           if UARTreadMsg(data) then begin
             ControlServos(data);                     {Servo assignement from settings}
             ControlSwitches(data);
+///////////////////////////////////////////////////////////////////////////////
+{Crash identified - HW dependent actions}
+            if crash then begin
+              SetGPIO(24, GPIOlow);            {Retract camera - HW dependent}
+              SetGPIO(23, GPIOhigh);
+              SetGPIO(26, GPIOhigh);           {Front light on - HW dependent}
+            end;
+///////////////////////////////////////////////////////////////////////////////
             inc(z);                                  {Telemetry counter}
 
             if data[3]=3 then begin                  {Message type GPS data set}
@@ -287,23 +302,31 @@ begin
               end;
               tele[24]:=i;                           {nsat + GPS used}
 
-              if mpu then begin                      {IMU MPU6050 available}
+              if mpu then begin                      {IMU MPU6050 on I²C available}
                 i16:=GetRegWbe(MPUadr, 61);          {Accel_Y}
-                i16:=round(i16/16384*csets[0, 5]);   {Correction factor AUX5}
+{Check avaverage value from accelerometer identify if cars is rolled over, crash}
+                accz:=accz+i16;
+                inc(glf);
+                if glf>nc then begin
+                  crash:=(abs(accz/glf)>kipp);
+                  accz:=0;                           {Reset average to start new cycle}
+                  glf:=0;
+                end;
+                i16:=round(i16/mpuraw*csets[0, 5]);  {Correction factor AUX5}
                 tele[27]:=i16 and $ff;               {Roll_L}
                 tele[18]:=tele[27];                  {vx}
                 tele[28]:=(i16 shr 8) and $FF;       {Roll_H}
                 tele[19]:=tele[28];                  {vx}
 
                 i16:=GetRegWbe(MPUadr, 63);          {Accel_Z}
-                i16:=-round((i16/16384)*csets[0, 5]);
+                i16:=-round((i16/mpuraw)*csets[0, 5]);
                 tele[29]:=i16 and $ff;               {Pitch_L}
                 tele[20]:=tele[29];                  {vy}
                 tele[30]:=(i16 shr 8) and $FF;       {Pitch_H}
                 tele[21]:=tele[30];                  {Pitch_H}
 
                 i16:=GetRegWbe(MPUadr, 59);          {Accel_X}
-                i16:=round(((i16/16384)-1)*csets[0, 5]);
+                i16:=round(((i16/mpuraw)-1)*csets[0, 5]);
                 tele[31]:=i16 and $ff;
                 tele[22]:=tele[31];                  {vz}
                 tele[32]:=(i16 shr 8) and $FF;
