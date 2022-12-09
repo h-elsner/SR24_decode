@@ -1,6 +1,6 @@
 # SR24_decode
 SR24 is a ZigBee receiver used for Yuneec drones. 
-For tests and analysis the transmitter will be connected to Raspberry PI.
+The transmitter has to be connected to Raspberry PI via UART for tests and analysis with this tool.
 ![Test setup](Raspi5.JPG)
 
 A test tool helps to create own applications for SR24.
