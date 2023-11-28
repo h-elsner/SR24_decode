@@ -1,3 +1,18 @@
+          {********************************************************}
+          {                                                        }
+          {   Control RC model with ST10/ST16 with SR24 receiver   }
+          {                                                        }
+          {       Copyright (c) 2021-2022    Helmut Elsner         }
+          {                                                        }
+          {       Compiler: FPC 3.2.2   /    Lazarus 2.2.0         }
+          {                                                        }
+          { Pascal programmers tend to plan ahead, they think      }
+          { before they type. We type a lot because of Pascal      }
+          { verboseness, but usually our code is right from the    }
+          { start. We end up typing less because we fix less bugs. }
+          {           [Jorge Aldo G. de F. Junior]                 }
+          {********************************************************}
+
 unit SR24_decode_main;
 
 {Test tool and example to read / write via UART for SR24 Yuneec receiver.
