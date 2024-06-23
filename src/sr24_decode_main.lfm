@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 1715
+  Left = 2034
   Height = 537
-  Top = 155
+  Top = 137
   Width = 820
   ActiveControl = cbxUARTname
   Caption = 'Form1'
@@ -12,7 +12,7 @@ object Form1: TForm1
   OnCreate = FormCreate
   Position = poDefaultPosOnly
   ShowHint = True
-  LCLVersion = '2.2.4.0'
+  LCLVersion = '3.0.0.3'
   object btnStop: TButton
     Left = 336
     Height = 30
@@ -20,8 +20,8 @@ object Form1: TForm1
     Top = 8
     Width = 148
     Caption = 'Stop/Disconnect'
-    OnClick = btnStopClick
     TabOrder = 0
+    OnClick = btnStopClick
   end
   object btnClose: TButton
     Left = 700
@@ -30,12 +30,13 @@ object Form1: TForm1
     Width = 104
     Anchors = [akTop, akRight]
     Caption = 'Close'
-    OnClick = btnCloseClick
     TabOrder = 1
+    OnClick = btnCloseClick
   end
   object cbxUARTname: TComboBox
     Left = 12
     Height = 28
+    Hint = 'Serial port (Assignement: ls -l /dev)'
     Top = 8
     Width = 148
     Color = clGradientInactiveCaption
@@ -43,7 +44,8 @@ object Form1: TForm1
     Items.Strings = (
       '/dev/ttyAMA0'
       '/dev/ttyUSB0'
-      '/dev/serial0'
+      '/dev/ttyS0'
+      '/dev/ttyS1'
       'COM1'
       'COM2'
       'COM3'
@@ -99,22 +101,22 @@ object Form1: TForm1
   object pcTests: TPageControl
     Left = 12
     Height = 483
-    Top = 48
+    Top = 54
     Width = 806
-    ActivePage = tbMirror
+    ActivePage = tbRaw
     Anchors = [akTop, akLeft, akRight, akBottom]
-    TabIndex = 2
+    TabIndex = 0
     TabOrder = 4
     object tbRaw: TTabSheet
       Caption = 'Raw data'
-      ClientHeight = 449
-      ClientWidth = 800
+      ClientHeight = 453
+      ClientWidth = 796
       object mmoProtocol: TMemo
         Left = 0
-        Height = 453
+        Height = 457
         Hint = 'Output bytes as hex'
         Top = 40
-        Width = 802
+        Width = 798
         Anchors = [akTop, akLeft, akRight, akBottom]
         Lines.Strings = (
           'Memo1'
@@ -129,8 +131,8 @@ object Form1: TForm1
         Top = 8
         Width = 104
         Caption = 'ListenRaw'
-        OnClick = btnListenRawClick
         TabOrder = 1
+        OnClick = btnListenRawClick
       end
       object btnListen: TButton
         Left = 120
@@ -139,37 +141,37 @@ object Form1: TForm1
         Top = 8
         Width = 104
         Caption = 'Listen'
-        OnClick = btnListenClick
         TabOrder = 2
+        OnClick = btnListenClick
       end
       object btnSave: TButton
-        Left = 690
+        Left = 686
         Height = 25
         Hint = 'Save protocol'
         Top = 7
         Width = 104
         Anchors = [akTop, akRight]
         Caption = 'Save'
-        OnClick = btnSaveClick
         TabOrder = 3
+        OnClick = btnSaveClick
       end
       object cbGPSonly: TCheckBox
         Left = 240
-        Height = 22
+        Height = 23
         Hint = 'Show only messages with GPS data from RC'
         Top = 8
-        Width = 80
+        Width = 82
         Caption = 'Only GPS'
         TabOrder = 4
       end
     end
     object tbVolt: TTabSheet
       Caption = 'Test telemetry'
-      ClientHeight = 449
-      ClientWidth = 800
+      ClientHeight = 453
+      ClientWidth = 796
       object speAlt: TFloatSpinEdit
         Left = 40
-        Height = 26
+        Height = 28
         Top = 96
         Width = 160
         Increment = 0.1
@@ -179,7 +181,7 @@ object Form1: TForm1
       end
       object edLat: TEdit
         Left = 40
-        Height = 26
+        Height = 28
         Top = 16
         Width = 160
         TabOrder = 1
@@ -188,7 +190,7 @@ object Form1: TForm1
       end
       object edLon: TEdit
         Left = 40
-        Height = 26
+        Height = 28
         Top = 56
         Width = 160
         TabOrder = 2
@@ -221,7 +223,7 @@ object Form1: TForm1
       end
       object speVolt: TFloatSpinEdit
         Left = 240
-        Height = 26
+        Height = 28
         Top = 134
         Width = 88
         Increment = 0.1
@@ -232,7 +234,7 @@ object Form1: TForm1
       end
       object speAmp: TFloatSpinEdit
         Left = 384
-        Height = 26
+        Height = 28
         Top = 136
         Width = 90
         Increment = 0.5
@@ -281,7 +283,7 @@ object Form1: TForm1
       end
       object speVx: TFloatSpinEdit
         Left = 240
-        Height = 26
+        Height = 28
         Top = 16
         Width = 90
         Increment = 0.1
@@ -297,7 +299,7 @@ object Form1: TForm1
       end
       object speGPS: TFloatSpinEdit
         Left = 80
-        Height = 26
+        Height = 28
         Top = 134
         Width = 120
         Increment = 0.1
@@ -315,33 +317,33 @@ object Form1: TForm1
       end
       object edMotor: TEdit
         Left = 384
-        Height = 26
+        Height = 28
         Top = 176
         Width = 80
-        OnChange = edMotorChange
         TabOrder = 8
         Text = '63'
         TextHint = 'Motor status'
+        OnChange = edMotorChange
       end
       object edIMU: TEdit
         Left = 136
-        Height = 26
+        Height = 28
         Top = 176
         Width = 90
-        OnChange = edIMUChange
         TabOrder = 9
         Text = '97'
         TextHint = 'IMU status'
+        OnChange = edIMUChange
       end
       object edPCS: TEdit
         Left = 240
-        Height = 26
+        Height = 28
         Top = 176
         Width = 88
-        OnChange = edPCSChange
         TabOrder = 10
         Text = '85'
         TextHint = 'Pressure compass status'
+        OnChange = edPCSChange
       end
       object lblMot: TLabel
         Left = 385
@@ -369,13 +371,13 @@ object Form1: TForm1
       end
       object edFmode: TEdit
         Left = 488
-        Height = 26
+        Height = 28
         Top = 176
         Width = 80
-        OnChange = edFmodeChange
         TabOrder = 11
         Text = '16'
         TextHint = 'Flight mode'
+        OnChange = edFmodeChange
       end
       object lblFmode: TLabel
         Left = 491
@@ -387,15 +389,15 @@ object Form1: TForm1
       end
       object cbGPS: TCheckBox
         Left = 8
-        Height = 22
+        Height = 23
         Top = 211
-        Width = 85
+        Width = 87
         Caption = 'GPS ready'
         TabOrder = 12
       end
       object speSats: TSpinEdit
         Left = 40
-        Height = 26
+        Height = 28
         Top = 176
         Width = 74
         MaxValue = 255
@@ -417,8 +419,8 @@ object Form1: TForm1
         Top = 272
         Width = 160
         Caption = 'Send data'
-        OnClick = btnSendClick
         TabOrder = 14
+        OnClick = btnSendClick
       end
       object rgType: TRadioGroup
         Left = 488
@@ -456,7 +458,7 @@ object Form1: TForm1
       end
       object speVy: TFloatSpinEdit
         Left = 240
-        Height = 26
+        Height = 28
         Top = 56
         Width = 90
         Increment = 0.1
@@ -464,7 +466,7 @@ object Form1: TForm1
       end
       object speVz: TFloatSpinEdit
         Left = 240
-        Height = 26
+        Height = 28
         Top = 96
         Width = 90
         Increment = 0.1
@@ -488,7 +490,7 @@ object Form1: TForm1
       end
       object spePitch: TFloatSpinEdit
         Left = 384
-        Height = 26
+        Height = 28
         Top = 16
         Width = 90
         Increment = 0.1
@@ -496,7 +498,7 @@ object Form1: TForm1
       end
       object speRoll: TFloatSpinEdit
         Left = 384
-        Height = 26
+        Height = 28
         Top = 56
         Width = 90
         Increment = 0.1
@@ -504,7 +506,7 @@ object Form1: TForm1
       end
       object speYaw: TFloatSpinEdit
         Left = 384
-        Height = 26
+        Height = 28
         Top = 96
         Width = 90
         Increment = 0.1
@@ -609,7 +611,7 @@ object Form1: TForm1
         }
       end
       object lblStatus1: TLabel
-        Left = 624
+        Left = 384
         Height = 16
         Top = 344
         Width = 82
@@ -622,22 +624,22 @@ object Form1: TForm1
         Top = 272
         Width = 104
         Caption = 'Bind'
-        OnClick = btnBindClick
         TabOrder = 23
+        OnClick = btnBindClick
       end
     end
     object tbMirror: TTabSheet
       Caption = 'Demo'
-      ClientHeight = 449
-      ClientWidth = 800
+      ClientHeight = 453
+      ClientWidth = 796
       object btnConnect: TButton
         Left = 312
         Height = 56
         Top = 224
         Width = 160
         Caption = 'Connect'
-        OnClick = btnConnectClick
         TabOrder = 0
+        OnClick = btnConnectClick
       end
       object lblStatus: TLabel
         Left = 312
@@ -922,12 +924,12 @@ object Form1: TForm1
         Top = 328
         Width = 160
         Caption = 'Logging'
-        OnClick = btnLogClick
         TabOrder = 7
+        OnClick = btnLogClick
       end
       object Edit1: TEdit
         Left = 16
-        Height = 26
+        Height = 28
         Top = 368
         Width = 744
         TabOrder = 8
@@ -946,14 +948,16 @@ object Form1: TForm1
   object cbxUARTspeed: TComboBox
     Left = 176
     Height = 28
+    Hint = 'Baudrate, default for SR24: 115200'
     Top = 8
     Width = 148
     Color = clGradientInactiveCaption
     ItemHeight = 0
-    ItemIndex = 0
     Items.Strings = (
       '115200 8N1'
       '230400 8N1'
+      '500000 8N1'
+      '921600 8N1'
     )
     TabOrder = 5
     Text = '115200 8N1'

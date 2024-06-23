@@ -338,18 +338,24 @@ begin
   case cbxUARTspeed.ItemIndex of
     0: bps:=UARTspeed;                              {SR24 default speed}
     1: bps:=230400;
+    2: bps:=500000;
+    3: bps:=921600;
   end;
-  ConnectUART(trim(cbxUARTname.Text), bps, SR24connected);
-  if SR24connected then
+  lblStatus1.Caption:=ConnectUART(trim(cbxUARTname.Text), bps, SR24connected);
+  if SR24connected then begin
     cbxUartname.Color:=clGradientActiveCaption;
+//    lblConnected.Caption:=rsConnected;
+  end;
   btnClose.Enabled:=false;
 end;
 
 procedure TForm1.sr24Discon;                         {Added color indication}
 begin
   DisconnectUART(SR24connected);
-  if not SR24connected then
+  if not SR24connected then begin
     cbxUartname.Color:=clGradientInactiveCaption;
+//    lblConnected.Caption:=rsDisconnected;
+  end;
   btnClose.Enabled:=true;
 end;
 
@@ -971,6 +977,7 @@ begin
   DeactivatePWM;
   btnClose.Enabled:=true;
   GPIOoff;
+  sr24Discon;
   lblStatus.Caption:=rsDisconnected;
   lblStatus1.Caption:=rsDisconnected;
 end;
