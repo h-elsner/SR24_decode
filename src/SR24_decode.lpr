@@ -7,7 +7,8 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, SR24_decode_main, mpu_ctrl, SR24_chsets, SR24_ctrl, SR24_dec, SR24_log
+  Forms, SR24_decode_main, mpu_ctrl, SR24_chsets, SR24_ctrl, SR24_dec, SR24_log,
+  sr24_UART
   { you can add units after this };
 
 {$R *.res}

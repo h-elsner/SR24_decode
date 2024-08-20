@@ -29,7 +29,7 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, SysUtils, CustApp, crt, SR24_dec, SR24_ctrl, SR24_chsets, mpu_ctrl, UNIX;
+  Classes, SysUtils, CustApp, crt, SR24_uart, SR24_dec, SR24_ctrl, SR24_chsets, mpu_ctrl, UNIX;
 
 type
 

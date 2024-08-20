@@ -35,7 +35,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
   ComCtrls, Spin, MKnob, switches, AdvLed,
-  SR24_dec, SR24_ctrl, SR24_chsets, SR24_log;
+  SR24_dec, SR24_ctrl, SR24_chsets, SR24_log, SR24_uart;
 
 type
 
@@ -134,6 +134,7 @@ type
     speAlt: TFloatSpinEdit;
     tbRaw: TTabSheet;
     tbVolt: TTabSheet;
+    tmRCconnected: TTimer;
     tmBind: TTimer;
     procedure btnBindClick(Sender: TObject);
     procedure btnConnectClick(Sender: TObject);
@@ -153,6 +154,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure speSatsChange(Sender: TObject);
     procedure tmBindTimer(Sender: TObject);
+    procedure tmRCconnectedTimer(Sender: TObject);
   private
     function ErrorStatus: byte;
     procedure Sendtest(data: TPayload);
@@ -162,7 +164,7 @@ type
     procedure sr24Discon;
     procedure ListenOnSR24;                          {Listen SR24}
     procedure ListenRaw;                             {Listen any byte stream on UART}
-    function OutData(data: TPayLoad): boolean;       {Decode and show received packaga}
+    function  OutData(data: TPayLoad): boolean;      {Decode and show received packaga}
     procedure SendTelemetry(data: TPayload);         {Send one telemetry dataset}
     procedure WriteProtocol(s: string);              {Catch output}
     procedure UpdateTelemetry(var data: TPayload);
@@ -174,7 +176,6 @@ var
   csets: TSettings;
 
 const
-  csvheader='Date/Time;MsgType;Counter;?;RSSI[%];PackageCtnr;CH0;CH1;CH2;CH3;CH4;CH5;CH6;CH7;CH8;CH9;CH10;CH11;lat;lon;alt;acc;speed;angle;Num Sats';
   rsNoData='No data to read on UART';
   rsFixType='Fix type';
   rsFmode='Flight mode';
@@ -193,44 +194,6 @@ implementation
 {$R *.lfm}
 
 { TForm1 }
-
-function ModeLegacy(const f: integer): string;     {Q500, YTH and all other legacy}
-begin
-  result:='Undefined';
-  case f of
-     0: result:='Stability';
-     1: result:='Stability - GPS off';
-     2: result:='Stability - GPSlost';
-     3: result:='Angle';
-     4: result:='Angle - GPS off';
-     5: result:='Angle - GPS lost';
-     6: result:='Smart';
-     7: result:='Smart - GPS lost';
-     8: result:='Motor starting';
-     9: result:='Temperature calibration';
-    10: result:='Pressure calibration';
-    11: result:='Accelerometer bias';
-    12: result:='Emergency';
-    13: result:='RTH Coming';
-    14: result:='RTH Landing';
-    15: result:='Binding';
-    16: result:='Initializing/Ready';              {Ready to start}
-    17: result:='Waiting on RC';
-    18: result:='Magnetomer calibration';
-    19: result:='Unknown';
-    20: result:='Agility/Rate';                    {Rate}
-    21: result:='Smart - Follow me';
-    22: result:='Smart - Follow me - GPS lost';
-    23: result:='Smart - Camera tracking';
-    24: result:='Camera tracking - GPS lost';
-    26: result:='Task Curve Cable Cam';
-    27: result:='Task Journey';
-    28: result:='Task Point of Interest';
-    29: result:='Task Orbit';
-    32: result:='IPS';                             {FMODE_ANGLE_MODE_IPS_ONLY:I = 0x20}
-    33: result:='Waypoints';
-  end;
-end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
@@ -261,56 +224,22 @@ begin
   lblFixType.Caption:=rsFixtype+dpkt+LineEnding+FixTypeToStr(ft);
 end;
 
-function MessageTypeToStr(mtp: byte):string;       {Known message types as string}
-begin
-  result:='Unknown '+IntToStr(mtp)+tab1+'($'+HexStr(mtp, 2)+')';
-  case mtp of
-    0:  result:='Data12Ch';
-    1:  result:='Data24Ch';
-    2:  result:='Telemetry';
-    3:  result:='GPS data';
-    4:  result:='Bind mode';
-    20: result:='Commands';
-  end;
-end;
-
-
-function RawData(data: TPayLoad; len: byte): string;
-var
-  i: byte;
-begin
-  result:='';
-  for i:=0 to len do
-    result:=result+HexStr(data[i], 2)+tab1;
-end;
-
-function ChannelValues(data: TPayLoad; numch: byte): string;
-var
-  i: byte;
-
-begin
-  result:='';
-  for i:=1 to numch do begin
-    result:=result+IntToStr(GetChValue(data, i))+sep;
-  end;
-end;
-
 {Data structure from ChannelDataForward.java}
-function GPSdata(data: TPayLoad): string;
+function GPSdata(data: TPayLoad; separator: char=';'): string;
 var
   lat, lon, alt: single;
 
 begin
-  result:=ChannelValues(data, 12);                                   {12 channels}
+  result:=ChannelValues(data, 12, sep);                                   {12 channels}
   if GetGPSdata(data, lat, lon, alt) then
     result:=result+
-            FormatFloat(cff, lon)+sep+
-            FormatFloat(cff, lat)+sep+
-            FormatFloat(aff, alt)+sep+
-            FormatFloat(aff, GetIntFromBuf(data, 38, 2)/10)+sep+     {acc}
-            FormatFloat(aff, GetIntFromBuf(data, 40, 2)/100)+sep+    {speed}
-            FormatFloat(aff, GetIntFromBuf(data, 42, 2)/100)+sep+    {angle}
-            IntToStr(GetNumSat(data[44]));                           {Num sats}
+            FormatFloat(cff, lon)+separator+
+            FormatFloat(cff, lat)+separator+
+            FormatFloat(aff, alt)+separator+
+            FormatFloat(aff, GetIntFromBuf(data, 38, 2)/10)+separator+     {acc}
+            FormatFloat(aff, GetIntFromBuf(data, 40, 2)/100)+separator+    {speed}
+            FormatFloat(aff, GetIntFromBuf(data, 42, 2)/100)+separator+    {angle}
+            IntToStr(GetNumSat(data[44]));                                 {Num sats}
 end;
 
 function Payld(data: TPayLoad): string;
@@ -352,6 +281,7 @@ end;
 procedure TForm1.sr24Discon;                         {Added color indication}
 begin
   DisconnectUART(SR24connected);
+  tmRCconnected.Enabled:=false;
   if not SR24connected then begin
     cbxUartname.Color:=clGradientInactiveCaption;
 //    lblConnected.Caption:=rsDisconnected;
@@ -361,6 +291,7 @@ end;
 
 procedure TForm1.tmBindTimer(Sender: TObject);       {sends 5 times bind message}
 begin
+  tmRCconnected.Enabled:=false;
   tmBind.Enabled:=false;
   SendBind;
   tmBind.Tag:=tmBind.Tag+1;
@@ -370,28 +301,33 @@ begin
     tmBind.Enabled:=true;
 end;
 
+procedure TForm1.tmRCconnectedTimer(Sender: TObject);
+begin
+  tmRCconnected.Enabled:=false;
+end;
+
 function TForm1.OutData(data: TPayLoad): boolean;    {Decode and show received package}
 var
-  len, mtp: byte;
+  len, msg_type: byte;
   s: string;
 
 begin
   len:=data[2];
-  mtp:=data[3];                                      {Message type}
+  msg_type:=data[3];                                 {Message type}
   result:=TestCRC8(data, len);                       {CRC check}
   if result then begin
-    if (cbGPSonly.Checked and (mtp=3)) or
+    if (cbGPSonly.Checked and (msg_type=3)) or
        (not cbGPSonly.Checked) then begin
       s:=FormatDateTime('yyyy-mm-dd hh:nn:ss:zzz', now)+sep+ {Create timestamp}
-         MessageTypeToStr(mtp)+sep+                  {Message type}
+         MessageTypeToStr(msg_type)+sep+             {Message type}
          IntToStr(data[4])+sep+                      {Message counter from SR24, not used?}
          HexStr(data[5], 2)+sep+
          IntToStr(GetRSSI(data))+sep+                {RSSI in %}
          IntToStr(data[7])+sep;                      {Number of UART packets sent since reception of last RF frame (this tells something about age / rate)}
-      case mtp of
-        0: s:=s+ChannelValues(data, 12);             {12 channels à 12 bit}
-        1: s:=s+ChannelValues(data, 24);             {24 channels à 12 bit}
-        3: s:=s+GPSdata(data);
+      case msg_type of
+        0: s:=s+ChannelValues(data, 12, sep);             {12 channels à 12 bit}
+        1: s:=s+ChannelValues(data, 24, sep);             {24 channels à 12 bit}
+        3: s:=s+GPSdata(data, sep);
         20: s:=Payld(data);
       else
         s:=RawData(data, len+2);                     {Other unknown messages as hex stream}
@@ -804,7 +740,7 @@ begin
               csvstr:=csvstr+sep+IntToStr(GetChValue(data, i));
             loglist2.Add(csvstr);                    {Remote}
             if data[3]=3 then                        {GPS data -> write RemoteGPS}
-              loglist3.Add(GetTimeStamp+sep+GPSdata(data));
+              loglist3.Add(GetTimeStamp+sep+GPSdata(data, sep));
           end;
 
           if z>=4 then begin                         {One telemetry per 5 received packages}
@@ -954,10 +890,13 @@ begin
   mmoProtocol.Lines.Clear;
   sr24Con;
   if UARTCanRead then begin
-    WriteProtocol(csvheader);
+    WriteProtocol(Telemetry_csvheader_common+Telemetry_csvheader_channels);
     repeat                                           {Listen on UART}
-      if UARTreadMsg(data) then
+      if UARTreadMsg(data) then begin
         OutData(data);
+        tmRCconnected.Enabled:=false;
+        tmRCconnected.Enabled:=true;                 {Reset timer for RC connection}
+      end;
     until btnStop.Tag>0;                             {Listen until Stop}
   end else
     WriteProtocol(rsNoData);

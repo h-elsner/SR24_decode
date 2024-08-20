@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ComCtrls,
   Buttons, Menus, ActnList, ExtCtrls, lclintf, XMLPropStorage, process,
-  SR24_chsets, SR24_dec;
+  SR24_chsets, SR24_uart;
 
 type                                                   {Definitions for TForm1}
 
