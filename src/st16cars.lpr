@@ -260,15 +260,19 @@ begin
         bindmode:=false;
 
         repeat                                       {Message loop}
-          if UARTreadMsg(data) then begin
-            ControlServos(data);                     {Servo assignement from settings}
+          if UARTreadMsg(data) then begin            {Failsafe mode}
+            if GetPackageCounter(data)>100 then begin
+              InitServos;
+              crash:=true;
+            end else
+              ControlServos(data);                   {Servo assignement from settings}
             ControlSwitches(data);
 ///////////////////////////////////////////////////////////////////////////////
 {Crash identified - HW dependent actions}
             if crash then begin
-              SetGPIO(24, GPIOlow);            {Retract camera - HW dependent}
+              SetGPIO(24, GPIOlow);                  {Retract camera - HW dependent}
               SetGPIO(23, GPIOhigh);
-              SetGPIO(26, GPIOhigh);           {Front light on - HW dependent}
+              SetGPIO(26, GPIOhigh);                 {Front light on - HW dependent}
             end;
 ///////////////////////////////////////////////////////////////////////////////
             inc(z);                                  {Telemetry counter}

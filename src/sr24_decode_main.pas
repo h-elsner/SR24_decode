@@ -34,7 +34,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
-  ComCtrls, Spin, MKnob, switches, AdvLed,
+  ComCtrls, Spin, MKnob, switches, AdvLed, IndLed,
   SR24_dec, SR24_ctrl, SR24_chsets, SR24_log, SR24_uart;
 
 type
@@ -48,6 +48,7 @@ type
     cgIMU: TCheckGroup;
     cgPCS: TCheckGroup;
     Edit1: TEdit;
+    ledRC: TindLed;
     Label17: TLabel;
     lblAmp: TLabel;
     lblStatus1: TLabel;
@@ -211,6 +212,7 @@ begin
   ReadSettings(csets);                             {Load common settings}
   lblStatus.Caption:=rsDisconnected;
   lblStatus1.Caption:=rsDisconnected;
+  ledRC.Enabled:=false;
 end;
 
 procedure TForm1.speSatsChange(Sender: TObject);
@@ -231,7 +233,7 @@ var
 
 begin
   result:=ChannelValues(data, 12, sep);                                   {12 channels}
-  if GetGPSdata(data, lat, lon, alt) then
+  if GetGPSdata(data, 26, lat, lon, alt) then
     result:=result+
             FormatFloat(cff, lon)+separator+
             FormatFloat(cff, lat)+separator+
@@ -274,6 +276,8 @@ begin
   if SR24connected then begin
     cbxUartname.Color:=clGradientActiveCaption;
 //    lblConnected.Caption:=rsConnected;
+    ledRC.Enabled:=true;
+    ledRC.LedValue:=true;
   end;
   btnClose.Enabled:=false;
 end;
@@ -285,6 +289,7 @@ begin
   if not SR24connected then begin
     cbxUartname.Color:=clGradientInactiveCaption;
 //    lblConnected.Caption:=rsDisconnected;
+    ledRC.Enabled:=false;
   end;
   btnClose.Enabled:=true;
 end;
@@ -654,6 +659,7 @@ begin
   if UARTCanRead then begin
     GPIOon;
     lblStatus.Caption:=rsConnected;
+    ledRC.Enabled:=true;
     if csets[12, 5]>0 then begin                     {Logging enabled, preparations}
       MakeFlightlogDir;
       fnr:=getlognumber;                             {Find next log file}
@@ -670,13 +676,17 @@ begin
     try
       repeat
         if UARTreadMsg(data) then begin
+          if GetPackageCounter(data)>100 then begin  {RC lost}
+            ledRC.LedValue:=false
+          end else
+            ledRC.LedValue:=true;
           alt:=0;
           lat:=0;
           lon:=0;
           if data[3]=3 then begin                    {GPS data set}
             for i:=0 to 7 do
               coord[i]:=data[26+i];                  {Store coordinates}
-            GetGPSdata(data, lat, lon, alt);
+            GetGPSdata(data, 26, lat, lon, alt);
           end;
           thr:=  GetChValue(data, 1);
           roll:= GetChValue(data, 2);
@@ -893,6 +903,10 @@ begin
     WriteProtocol(Telemetry_csvheader_common+Telemetry_csvheader_channels);
     repeat                                           {Listen on UART}
       if UARTreadMsg(data) then begin
+        if GetPackageCounter(data)>100 then begin    {RC lost}
+          ledRC.LedValue:=false
+        end else
+          ledRC.LedValue:=true;
         OutData(data);
         tmRCconnected.Enabled:=false;
         tmRCconnected.Enabled:=true;                 {Reset timer for RC connection}
@@ -919,6 +933,7 @@ begin
   sr24Discon;
   lblStatus.Caption:=rsDisconnected;
   lblStatus1.Caption:=rsDisconnected;
+  ledRC.Enabled:=false;
 end;
 
 procedure TForm1.btnSaveClick(Sender: TObject);      {Save}

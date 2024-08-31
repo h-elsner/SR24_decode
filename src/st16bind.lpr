@@ -6,7 +6,7 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, SysUtils, CustApp, SR24_dec;
+  Classes, SysUtils, CustApp, SR24_uart;
 
 type
   TMyApplication = class(TCustomApplication)
