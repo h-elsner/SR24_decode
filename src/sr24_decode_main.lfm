@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 1032
+  Left = 677
   Height = 537
-  Top = 147
+  Top = 571
   Width = 820
   ActiveControl = cbxUARTname
   Caption = 'Form1'
@@ -9,10 +9,10 @@ object Form1: TForm1
   ClientWidth = 820
   Constraints.MinHeight = 430
   Constraints.MinWidth = 820
-  OnCreate = FormCreate
   Position = poDefaultPosOnly
   ShowHint = True
-  LCLVersion = '2.3.0.0'
+  LCLVersion = '4.3.0.0'
+  OnCreate = FormCreate
   object btnStop: TButton
     Left = 336
     Height = 30
@@ -20,8 +20,8 @@ object Form1: TForm1
     Top = 8
     Width = 148
     Caption = 'Stop/Disconnect'
-    OnClick = btnStopClick
     TabOrder = 0
+    OnClick = btnStopClick
   end
   object btnClose: TButton
     Left = 700
@@ -30,12 +30,12 @@ object Form1: TForm1
     Width = 104
     Anchors = [akTop, akRight]
     Caption = 'Close'
-    OnClick = btnCloseClick
     TabOrder = 1
+    OnClick = btnCloseClick
   end
   object cbxUARTname: TComboBox
     Left = 12
-    Height = 31
+    Height = 28
     Hint = 'Serial port (Assignement: ls -l /dev)'
     Top = 8
     Width = 148
@@ -43,8 +43,8 @@ object Form1: TForm1
     ItemHeight = 0
     ItemIndex = 0
     Items.Strings = (
-      '/dev/ttyAMA0'
       '/dev/ttyUSB0'
+      '/dev/ttyAMA0'
       '/dev/ttyS0'
       '/dev/ttyS1'
       'COM1'
@@ -65,7 +65,7 @@ object Form1: TForm1
       'COM16'
     )
     TabOrder = 2
-    Text = '/dev/ttyAMA0'
+    Text = '/dev/ttyUSB0'
   end
   object CheckGroup1: TCheckGroup
     Left = 648
@@ -82,7 +82,7 @@ object Form1: TForm1
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
-    ClientHeight = 201
+    ClientHeight = 207
     ClientWidth = 130
     Items.Strings = (
       'Voltage 1'
@@ -104,17 +104,17 @@ object Form1: TForm1
     Height = 483
     Top = 54
     Width = 806
-    ActivePage = tbVolt
+    ActivePage = tbMirror
     Anchors = [akTop, akLeft, akRight, akBottom]
-    TabIndex = 1
+    TabIndex = 2
     TabOrder = 4
     object tbRaw: TTabSheet
       Caption = 'Raw data'
-      ClientHeight = 435
+      ClientHeight = 453
       ClientWidth = 796
       object mmoProtocol: TMemo
         Left = 0
-        Height = 439
+        Height = 457
         Hint = 'Output bytes as hex'
         Top = 40
         Width = 798
@@ -132,8 +132,8 @@ object Form1: TForm1
         Top = 8
         Width = 104
         Caption = 'ListenRaw'
-        OnClick = btnListenRawClick
         TabOrder = 1
+        OnClick = btnListenRawClick
       end
       object btnListen: TButton
         Left = 120
@@ -142,8 +142,8 @@ object Form1: TForm1
         Top = 8
         Width = 104
         Caption = 'Listen'
-        OnClick = btnListenClick
         TabOrder = 2
+        OnClick = btnListenClick
       end
       object btnSave: TButton
         Left = 686
@@ -153,26 +153,26 @@ object Form1: TForm1
         Width = 104
         Anchors = [akTop, akRight]
         Caption = 'Save'
-        OnClick = btnSaveClick
         TabOrder = 3
+        OnClick = btnSaveClick
       end
       object cbGPSonly: TCheckBox
         Left = 240
-        Height = 26
+        Height = 23
         Hint = 'Show only messages with GPS data from RC'
         Top = 8
-        Width = 95
+        Width = 80
         Caption = 'Only GPS'
         TabOrder = 4
       end
     end
     object tbVolt: TTabSheet
       Caption = 'Test telemetry'
-      ClientHeight = 435
+      ClientHeight = 453
       ClientWidth = 796
       object speAlt: TFloatSpinEdit
         Left = 40
-        Height = 31
+        Height = 28
         Top = 96
         Width = 160
         Increment = 0.1
@@ -182,7 +182,7 @@ object Form1: TForm1
       end
       object edLat: TEdit
         Left = 40
-        Height = 31
+        Height = 28
         Top = 16
         Width = 160
         TabOrder = 1
@@ -191,7 +191,7 @@ object Form1: TForm1
       end
       object edLon: TEdit
         Left = 40
-        Height = 31
+        Height = 28
         Top = 56
         Width = 160
         TabOrder = 2
@@ -200,31 +200,31 @@ object Form1: TForm1
       end
       object Label1: TLabel
         Left = 8
-        Height = 22
+        Height = 16
         Top = 24
-        Width = 22
+        Width = 19
         Caption = 'Lat'
         ParentColor = False
       end
       object Label2: TLabel
         Left = 8
-        Height = 22
+        Height = 16
         Top = 64
-        Width = 26
+        Width = 23
         Caption = 'Lon'
         ParentColor = False
       end
       object Label3: TLabel
         Left = 8
-        Height = 22
+        Height = 16
         Top = 104
-        Width = 19
+        Width = 17
         Caption = 'Alt'
         ParentColor = False
       end
       object speVolt: TFloatSpinEdit
         Left = 240
-        Height = 31
+        Height = 28
         Top = 134
         Width = 88
         Increment = 0.1
@@ -235,7 +235,7 @@ object Form1: TForm1
       end
       object speAmp: TFloatSpinEdit
         Left = 384
-        Height = 31
+        Height = 28
         Top = 136
         Width = 90
         Increment = 0.5
@@ -244,9 +244,9 @@ object Form1: TForm1
       end
       object lblVolt: TLabel
         Left = 216
-        Height = 22
+        Height = 16
         Top = 144
-        Width = 11
+        Width = 9
         Caption = 'U'
         ParentColor = False
       end
@@ -265,7 +265,7 @@ object Form1: TForm1
         ChildSizing.ShrinkVertical = crsScaleChilds
         ChildSizing.Layout = cclLeftToRightThenTopToBottom
         ChildSizing.ControlsPerLine = 1
-        ClientHeight = 173
+        ClientHeight = 179
         ClientWidth = 158
         Items.Strings = (
           'Voltage 1'
@@ -284,7 +284,7 @@ object Form1: TForm1
       end
       object speVx: TFloatSpinEdit
         Left = 240
-        Height = 31
+        Height = 28
         Top = 16
         Width = 90
         Increment = 0.1
@@ -292,15 +292,15 @@ object Form1: TForm1
       end
       object lblVx: TLabel
         Left = 216
-        Height = 22
+        Height = 16
         Top = 21
-        Width = 18
+        Width = 15
         Caption = 'Vx'
         ParentColor = False
       end
       object speGPS: TFloatSpinEdit
         Left = 80
-        Height = 31
+        Height = 28
         Top = 134
         Width = 120
         Increment = 0.1
@@ -310,107 +310,107 @@ object Form1: TForm1
       end
       object Label6: TLabel
         Left = 8
-        Height = 22
+        Height = 16
         Top = 144
-        Width = 63
+        Width = 52
         Caption = 'gpsAccH'
         ParentColor = False
       end
       object edMotor: TEdit
         Left = 384
-        Height = 31
+        Height = 28
         Top = 176
         Width = 80
-        OnChange = edMotorChange
         TabOrder = 8
         Text = '63'
         TextHint = 'Motor status'
+        OnChange = edMotorChange
       end
       object edIMU: TEdit
         Left = 136
-        Height = 31
+        Height = 28
         Top = 176
         Width = 90
-        OnChange = edIMUChange
         TabOrder = 9
         Text = '97'
         TextHint = 'IMU status'
+        OnChange = edIMUChange
       end
       object edPCS: TEdit
         Left = 240
-        Height = 31
+        Height = 28
         Top = 176
         Width = 88
-        OnChange = edPCSChange
         TabOrder = 10
         Text = '85'
         TextHint = 'Pressure compass status'
+        OnChange = edPCSChange
       end
       object lblMot: TLabel
         Left = 385
-        Height = 22
+        Height = 16
         Top = 216
-        Width = 90
+        Width = 78
         Caption = 'Motor status'
         ParentColor = False
       end
       object lblPCS: TLabel
         Left = 242
-        Height = 22
+        Height = 16
         Top = 216
-        Width = 135
+        Width = 113
         Caption = 'Press/Comp status'
         ParentColor = False
       end
       object lblIMU: TLabel
         Left = 136
-        Height = 22
+        Height = 16
         Top = 216
-        Width = 77
+        Width = 64
         Caption = 'IMU status'
         ParentColor = False
       end
       object edFmode: TEdit
         Left = 488
-        Height = 31
+        Height = 28
         Top = 176
         Width = 80
-        OnChange = edFmodeChange
         TabOrder = 11
         Text = '16'
         TextHint = 'Flight mode'
+        OnChange = edFmodeChange
       end
       object lblFmode: TLabel
         Left = 491
-        Height = 22
+        Height = 16
         Top = 216
-        Width = 84
+        Width = 72
         Caption = 'Flight mode'
         ParentColor = False
       end
       object cbGPS: TCheckBox
         Left = 8
-        Height = 26
+        Height = 23
         Top = 211
-        Width = 102
+        Width = 86
         Caption = 'GPS ready'
         TabOrder = 12
       end
       object speSats: TSpinEdit
         Left = 40
-        Height = 31
+        Height = 28
         Top = 176
         Width = 74
         MaxValue = 255
-        OnChange = speSatsChange
         TabOrder = 13
         Value = 8
+        OnChange = speSatsChange
       end
       object Label10: TLabel
         Left = 8
-        Height = 22
+        Height = 16
         Top = 184
-        Width = 32
+        Width = 25
         Caption = 'Sats'
         ParentColor = False
       end
@@ -420,8 +420,8 @@ object Form1: TForm1
         Top = 272
         Width = 160
         Caption = 'Send data'
-        OnClick = btnSendClick
         TabOrder = 14
+        OnClick = btnSendClick
       end
       object rgType: TRadioGroup
         Left = 488
@@ -437,7 +437,7 @@ object Form1: TForm1
         ChildSizing.ShrinkVertical = crsScaleChilds
         ChildSizing.Layout = cclLeftToRightThenTopToBottom
         ChildSizing.ControlsPerLine = 1
-        ClientHeight = 138
+        ClientHeight = 144
         ClientWidth = 118
         ItemIndex = 4
         Items.Strings = (
@@ -451,15 +451,15 @@ object Form1: TForm1
       end
       object lblFixType: TLabel
         Left = 8
-        Height = 22
+        Height = 16
         Top = 240
-        Width = 55
+        Width = 46
         Caption = 'Fix type'
         ParentColor = False
       end
       object speVy: TFloatSpinEdit
         Left = 240
-        Height = 31
+        Height = 28
         Top = 56
         Width = 90
         Increment = 0.1
@@ -467,7 +467,7 @@ object Form1: TForm1
       end
       object speVz: TFloatSpinEdit
         Left = 240
-        Height = 31
+        Height = 28
         Top = 96
         Width = 90
         Increment = 0.1
@@ -475,23 +475,23 @@ object Form1: TForm1
       end
       object lblVy: TLabel
         Left = 216
-        Height = 22
+        Height = 16
         Top = 64
-        Width = 18
+        Width = 14
         Caption = 'Vy'
         ParentColor = False
       end
       object lblVz: TLabel
         Left = 216
-        Height = 22
+        Height = 16
         Top = 104
-        Width = 18
+        Width = 14
         Caption = 'Vz'
         ParentColor = False
       end
       object spePitch: TFloatSpinEdit
         Left = 384
-        Height = 31
+        Height = 28
         Top = 16
         Width = 90
         Increment = 0.1
@@ -499,7 +499,7 @@ object Form1: TForm1
       end
       object speRoll: TFloatSpinEdit
         Left = 384
-        Height = 31
+        Height = 28
         Top = 56
         Width = 90
         Increment = 0.1
@@ -507,7 +507,7 @@ object Form1: TForm1
       end
       object speYaw: TFloatSpinEdit
         Left = 384
-        Height = 31
+        Height = 28
         Top = 96
         Width = 90
         Increment = 0.1
@@ -515,33 +515,33 @@ object Form1: TForm1
       end
       object lblPitch: TLabel
         Left = 344
-        Height = 22
+        Height = 16
         Top = 24
-        Width = 36
+        Width = 30
         Caption = 'Pitch'
         ParentColor = False
       end
       object lblRoll: TLabel
         Left = 344
-        Height = 22
+        Height = 16
         Top = 64
-        Width = 28
+        Width = 22
         Caption = 'Roll'
         ParentColor = False
       end
       object lblYaw: TLabel
         Left = 344
-        Height = 22
+        Height = 16
         Top = 104
-        Width = 30
+        Width = 24
         Caption = 'Yaw'
         ParentColor = False
       end
       object lblAmp: TLabel
         Left = 344
-        Height = 22
+        Height = 16
         Top = 144
-        Width = 33
+        Width = 29
         Caption = 'Amp'
         ParentColor = False
       end
@@ -560,7 +560,7 @@ object Form1: TForm1
         ChildSizing.ShrinkVertical = crsScaleChilds
         ChildSizing.Layout = cclLeftToRightThenTopToBottom
         ChildSizing.ControlsPerLine = 1
-        ClientHeight = 137
+        ClientHeight = 143
         ClientWidth = 88
         Items.Strings = (
           'IMU'
@@ -572,8 +572,8 @@ object Form1: TForm1
           'C-Comp'
           'C-GPS'
         )
-        OnClick = cgIMUClick
         TabOrder = 21
+        OnClick = cgIMUClick
         Data = {
           080000000202020202020202
         }
@@ -593,7 +593,7 @@ object Form1: TForm1
         ChildSizing.ShrinkVertical = crsScaleChilds
         ChildSizing.Layout = cclLeftToRightThenTopToBottom
         ChildSizing.ControlsPerLine = 1
-        ClientHeight = 137
+        ClientHeight = 143
         ClientWidth = 84
         Items.Strings = (
           'Baro'
@@ -605,17 +605,17 @@ object Form1: TForm1
           'Sonar'
           'IPS'
         )
-        OnClick = cgPCSClick
         TabOrder = 22
+        OnClick = cgPCSClick
         Data = {
           080000000202020202020202
         }
       end
       object lblStatus1: TLabel
         Left = 384
-        Height = 22
+        Height = 16
         Top = 344
-        Width = 96
+        Width = 81
         Caption = 'Disconnected'
         ParentColor = False
       end
@@ -625,28 +625,28 @@ object Form1: TForm1
         Top = 272
         Width = 104
         Caption = 'Bind'
-        OnClick = btnBindClick
         TabOrder = 23
+        OnClick = btnBindClick
       end
     end
     object tbMirror: TTabSheet
       Caption = 'Demo'
-      ClientHeight = 435
+      ClientHeight = 453
       ClientWidth = 796
       object btnConnect: TButton
         Left = 312
-        Height = 56
-        Top = 224
+        Height = 40
+        Top = 240
         Width = 160
         Caption = 'Connect'
-        OnClick = btnConnectClick
         TabOrder = 0
+        OnClick = btnConnectClick
       end
       object lblStatus: TLabel
         Left = 312
-        Height = 22
-        Top = 284
-        Width = 96
+        Height = 16
+        Top = 288
+        Width = 81
         Caption = 'Disconnected'
         ParentColor = False
       end
@@ -660,9 +660,9 @@ object Form1: TForm1
       end
       object Label11: TLabel
         Left = 568
-        Height = 22
+        Height = 16
         Top = 10
-        Width = 35
+        Width = 25
         Caption = 'RSSI'
         ParentColor = False
       end
@@ -721,33 +721,33 @@ object Form1: TForm1
         end
         object Label12: TLabel
           Left = 120
-          Height = 22
+          Height = 16
           Top = 0
-          Width = 55
+          Width = 48
           Caption = 'Throttle'
           ParentColor = False
         end
         object Label13: TLabel
           Left = 176
-          Height = 22
+          Height = 16
           Top = 112
-          Width = 30
+          Width = 24
           Caption = 'Yaw'
           ParentColor = False
         end
         object lblYawVal: TLabel
           Left = 0
-          Height = 22
+          Height = 16
           Top = 76
-          Width = 30
+          Width = 24
           Caption = 'Yaw'
           ParentColor = False
         end
         object lblThrVal: TLabel
           Left = 120
-          Height = 22
+          Height = 16
           Top = 184
-          Width = 55
+          Width = 48
           Caption = 'Throttle'
           ParentColor = False
         end
@@ -807,33 +807,33 @@ object Form1: TForm1
         end
         object Label14: TLabel
           Left = 120
-          Height = 22
+          Height = 16
           Top = 0
-          Width = 36
+          Width = 30
           Caption = 'Pitch'
           ParentColor = False
         end
         object Label15: TLabel
           Left = 179
-          Height = 22
+          Height = 16
           Top = 112
-          Width = 28
+          Width = 22
           Caption = 'Roll'
           ParentColor = False
         end
         object lblRollVal: TLabel
           Left = 0
-          Height = 22
+          Height = 16
           Top = 76
-          Width = 28
+          Width = 22
           Caption = 'Roll'
           ParentColor = False
         end
         object lblPitchVal: TLabel
           Left = 120
-          Height = 22
+          Height = 16
           Top = 188
-          Width = 36
+          Width = 30
           Caption = 'Pitch'
           ParentColor = False
         end
@@ -876,9 +876,9 @@ object Form1: TForm1
       end
       object Label16: TLabel
         Left = 0
-        Height = 22
+        Height = 16
         Top = 88
-        Width = 23
+        Width = 19
         Caption = 'Tilt'
         ParentColor = False
       end
@@ -888,38 +888,34 @@ object Form1: TForm1
         Hint = 'Aux button'
         Top = 10
         Width = 24
-        State = lsDisabled
-        Blink = False
       end
       object ledStop: TAdvLed
         Left = 132
         Height = 24
         Top = 280
         Width = 24
-        State = lsDisabled
-        Blink = False
       end
       object lblPanVal: TLabel
         Left = 280
-        Height = 22
+        Height = 16
         Top = 57
-        Width = 87
+        Width = 72
         Caption = 'Camera Pan'
         ParentColor = False
       end
       object lblRSSIval: TLabel
         Left = 608
-        Height = 22
+        Height = 16
         Top = 32
-        Width = 35
+        Width = 25
         Caption = 'RSSI'
         ParentColor = False
       end
       object lblPanMode: TLabel
         Left = 280
-        Height = 22
+        Height = 16
         Top = 88
-        Width = 72
+        Width = 61
         Caption = 'Pan Mode'
         ParentColor = False
       end
@@ -929,30 +925,53 @@ object Form1: TForm1
         Top = 328
         Width = 160
         Caption = 'Logging'
-        OnClick = btnLogClick
         TabOrder = 7
+        OnClick = btnLogClick
       end
       object Edit1: TEdit
         Left = 16
-        Height = 31
+        Height = 28
         Top = 368
         Width = 744
         TabOrder = 8
         Text = 'Edit1'
       end
+      object gridRCdata: TStringGrid
+        Left = 272
+        Height = 84
+        Top = 144
+        Width = 256
+        ColCount = 2
+        FixedRows = 0
+        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goSmoothScroll]
+        RowCount = 3
+        ScrollBars = ssNone
+        TabOrder = 9
+        ColWidths = (
+          125
+          126
+        )
+      end
+      object lblRCdata: TLabel
+        Left = 352
+        Height = 16
+        Top = 128
+        Width = 73
+        Caption = 'RC GPS data'
+      end
     end
   end
   object Label17: TLabel
     Left = 10
-    Height = 22
+    Height = 16
     Top = 211
-    Width = 56
+    Width = 48
     Caption = 'Label17'
     ParentColor = False
   end
   object cbxUARTspeed: TComboBox
     Left = 176
-    Height = 31
+    Height = 28
     Hint = 'Baudrate, default for SR24: 115200'
     Top = 8
     Width = 148

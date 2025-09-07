@@ -34,7 +34,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, StdCtrls, ExtCtrls,
-  ComCtrls, Spin, MKnob, switches, AdvLed, IndLed,
+  ComCtrls, Spin, Grids, MKnob, switches, AdvLed, IndLed,
   SR24_dec, SR24_ctrl, SR24_chsets, SR24_log, SR24_uart;
 
 type
@@ -48,6 +48,7 @@ type
     cgIMU: TCheckGroup;
     cgPCS: TCheckGroup;
     Edit1: TEdit;
+    lblRCdata: TLabel;
     ledRC: TindLed;
     Label17: TLabel;
     lblAmp: TLabel;
@@ -94,6 +95,7 @@ type
     speYaw: TFloatSpinEdit;
     speVy: TFloatSpinEdit;
     speVz: TFloatSpinEdit;
+    gridRCdata: TStringGrid;
     swGear: TOnOffSwitch;
     pLeft: TPanel;
     pRight: TPanel;
@@ -213,6 +215,9 @@ begin
   lblStatus.Caption:=rsDisconnected;
   lblStatus1.Caption:=rsDisconnected;
   ledRC.Enabled:=false;
+  gridRCdata.Cells[0, 0]:='Latitude';
+  gridRCdata.Cells[0, 1]:='Longitude';
+  gridRCdata.Cells[0, 2]:='Altitude (MSL)';
 end;
 
 procedure TForm1.speSatsChange(Sender: TObject);
@@ -687,6 +692,9 @@ begin
             for i:=0 to 7 do
               coord[i]:=data[26+i];                  {Store coordinates}
             GetGPSdata(data, 26, lat, lon, alt);
+            gridRCdata.Cells[1, 0]:=FormatFloat(cff, lat);
+            gridRCdata.Cells[1, 1]:=FormatFloat(cff, lon);    {lat, lon}
+            gridRCdata.Cells[1, 2]:=FormatFloat(aff, alt)+'m';                            {Altitude}
           end;
           thr:=  GetChValue(data, 1);
           roll:= GetChValue(data, 2);
@@ -787,8 +795,8 @@ begin
             inc(tlz);                                {Counter for sent packages}
             if tlz>=65535 then
               tlz:=0;
-            if csets[12, 5]>0 then begin             {Logging enabled, read telemetry}
-              tas:=(GetPWMval(data, 0)-stkntrl)/csets[0, 3];     {Value PWM0 - neutral div corrction value for speed}
+            tas:=(GetPWMval(data, 0)-stkntrl)/csets[0, 3];     {Value PWM0 - neutral div corrction value for speed}
+            if (csets[12, 5]>0) and (loglist1.Count>0) then begin           {Logging enabled, read telemetry}
               csvstr:=GetTimeStamp+sep+
                       IntToStr(pbRSSI.Position)+sep+'0'+sep+'0'+sep+        {RSSI, V, A}
                       FormatFloat(aff, alt)+sep+                            {Altitude}
@@ -807,14 +815,15 @@ begin
                       FormatFloat('0.0', GetIntFromBuf(data, 38, 2)/20);    {gps_accH from accuracy}
 
               loglist1.Add(csvstr);
+
+              if loglist1.Count>500 then               {Buffer to file}
+                WriteLogBlock;
             end;
-            if loglist1.Count>500 then               {Buffer to file}
-              WriteLogBlock;
           end;
           Application.ProcessMessages;
         end;
       until btnStop.Tag>0;                           {Listen until Stop}
-      if loglist1.Count>0 then                       {Rest of buffer to file}
+      if (csets[12, 5]>0) and (loglist1.Count>0) then  {Rest of buffer to file}
         WriteLogBlock;
     finally
       if csets[12, 5]>0 then begin                   {Logging enabled, cleanup}
