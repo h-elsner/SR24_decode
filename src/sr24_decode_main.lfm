@@ -947,6 +947,7 @@ object Form1: TForm1
         RowCount = 3
         ScrollBars = ssNone
         TabOrder = 9
+        OnDblClick = gridRCdataDblClick
         ColWidths = (
           125
           126
